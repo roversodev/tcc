@@ -1,0 +1,137 @@
+[
+  {
+    "id": 1,
+    "header": "Corte de Cabelo Masculino",
+    "type": "Serviço",
+    "status": "Ativo",
+    "target": "25",
+    "limit": "0",
+    "reviewer": "João Silva"
+  },
+  {
+    "id": 2,
+    "header": "Barba e Bigode",
+    "type": "Serviço",
+    "status": "Ativo",
+    "target": "15",
+    "limit": "0",
+    "reviewer": "João Silva"
+  },
+  {
+    "id": 3,
+    "header": "Shampoo Profissional",
+    "type": "Produto",
+    "status": "Em Estoque",
+    "target": "35",
+    "limit": "12",
+    "reviewer": "Maria Santos"
+  },
+  {
+    "id": 4,
+    "header": "Pomada para Cabelo",
+    "type": "Produto",
+    "status": "Estoque Baixo",
+    "target": "28",
+    "limit": "3",
+    "reviewer": "Maria Santos"
+  },
+  {
+    "id": 5,
+    "header": "Corte Feminino",
+    "type": "Serviço",
+    "status": "Ativo",
+    "target": "45",
+    "limit": "0",
+    "reviewer": "Ana Costa"
+  },
+  {
+    "id": 6,
+    "header": "Escova Progressiva",
+    "type": "Serviço",
+    "status": "Ativo",
+    "target": "120",
+    "limit": "0",
+    "reviewer": "Ana Costa"
+  },
+  {
+    "id": 7,
+    "header": "Condicionador",
+    "type": "Produto",
+    "status": "Em Estoque",
+    "target": "32",
+    "limit": "15",
+    "reviewer": "Carlos Oliveira"
+  },
+  {
+    "id": 8,
+    "header": "Coloração",
+    "type": "Serviço",
+    "status": "Ativo",
+    "target": "80",
+    "limit": "0",
+    "reviewer": "Ana Costa"
+  },
+  {
+    "id": 9,
+    "header": "Máquina de Cortar Cabelo",
+    "type": "Equipamento",
+    "status": "Funcionando",
+    "target": "450",
+    "limit": "1",
+    "reviewer": "Técnico"
+  },
+  {
+    "id": 10,
+    "header": "Hidratação Capilar",
+    "type": "Serviço",
+    "status": "Ativo",
+    "target": "60",
+    "limit": "0",
+    "reviewer": "Ana Costa"
+  },
+  {
+    "id": 11,
+    "header": "Cera Modeladora",
+    "type": "Produto",
+    "status": "Em Estoque",
+    "target": "22",
+    "limit": "8",
+    "reviewer": "Maria Santos"
+  },
+  {
+    "id": 12,
+    "header": "Tratamento Anti-Caspa",
+    "type": "Serviço",
+    "status": "Ativo",
+    "target": "35",
+    "limit": "0",
+    "reviewer": "João Silva"
+  },
+  {
+    "id": 13,
+    "header": "Óleo Capilar",
+    "type": "Produto",
+    "status": "Estoque Baixo",
+    "target": "45",
+    "limit": "2",
+    "reviewer": "Maria Santos"
+  },
+  {
+    "id": 14,
+    "header": "Penteado para Festa",
+    "type": "Serviço",
+    "status": "Ativo",
+    "target": "85",
+    "limit": "0",
+    "reviewer": "Ana Costa"
+  },
+  {
+    "id": 15,
+    "header": "Secador Profissional",
+    "type": "Equipamento",
+    "status": "Funcionando",
+    "target": "280",
+    "limit": "2",
+    "reviewer": "Técnico"
+  }
+]
