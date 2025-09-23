@@ -33,15 +33,13 @@ export function NavSecondary({
             const isActive = pathname === item.url
             return (
               <SidebarMenuItem key={item.title}>
-                <Link href={item.url} passHref>
+                <Link href={item.url}>
                   <SidebarMenuButton 
-                    asChild 
-                    className={isActive ? 'text-destaque' : ''}
+                    isActive={isActive}
+                    className="cursor-pointer"
                   >
-                    <div>
-                      <item.icon className={isActive ? 'text-destaque' : ''} />
-                      <span>{item.title}</span>
-                    </div>
+                    <item.icon />
+                    <span>{item.title}</span>
                   </SidebarMenuButton>
                 </Link>
               </SidebarMenuItem>

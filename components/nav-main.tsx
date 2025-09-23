@@ -39,9 +39,10 @@ export function NavMain({
                 <Link href={item.url}>
                   <SidebarMenuButton 
                     tooltip={item.title} 
-                    className={`cursor-pointer ${isActive ? 'text-destaque' : ''}`}
+                    isActive={isActive}
+                    className="cursor-pointer"
                   >
-                    {item.icon && <item.icon className={isActive ? 'text-destaque' : ''} />}
+                    {item.icon && <item.icon />}
                     <span>{item.title}</span>
                   </SidebarMenuButton>
                 </Link>

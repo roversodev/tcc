@@ -11,11 +11,13 @@ import {
   IconTicket,
   IconUsers,
   IconCalendarEvent,
+  IconPackage,
 } from "@tabler/icons-react"
 
 import { NavMain } from "@/components/nav-main"
 import { NavSecondary } from "@/components/nav-secondary"
 import { NavUser } from "@/components/nav-user"
+import { TeamSwitcher } from "@/components/team-switcher"
 import {
   Sidebar,
   SidebarContent,
@@ -37,9 +39,24 @@ const data = {
   navMain: [
     {
       title: "Dashboard",
-      url: "/",
+      url: "/dashboard",
       icon: IconDashboard,
     },
+    {
+      title: "Agenda Dinâmica",
+      url: "/agenda",
+      icon: IconCalendarEvent,
+    },
+    {
+      title: "Controle de Estoque",
+      url: "/estoque",
+      icon: IconPackage,
+    },
+    {
+      title: "Gestão de Clientes",
+      url: "/clientes",
+      icon: IconUsers,
+      }
   ],
   navSecondary: [
     {
@@ -64,26 +81,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              className="data-[slot=sidebar-menu-button]:!p-1.5"
-            >
-              <Link href="#">
-                <IconInnerShadowTop className="!size-5" />
-                <span className="text-base font-semibold">Vellum Inc.</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
+        <TeamSwitcher />
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser />
       </SidebarFooter>
     </Sidebar>
   )

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "next-themes";
+import { Toaster } from "@/components/ui/sonner";
 
 const geistSans = Plus_Jakarta_Sans({
   variable: "--font-geist-sans",
@@ -26,6 +27,7 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="light">
           {children}
         </ThemeProvider>
+        <Toaster />
       </body>
     </html>
   );
