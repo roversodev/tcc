@@ -20,8 +20,9 @@ Para testar o app deve clonar o repositório e seguir os passos abaixo:
 
 1. Instalar as dependências (npm install)
 2. Configurar as variáveis de ambiente como estão no .env.exemple
-2. Executar o app (npm run dev)
-3. Acessar o app em http://localhost:3000
+3. Configurar o banco de dados (mysql, arquivo para criação no supabase database-setup.sql)
+4. Executar o app (npm run dev)
+5. Acessar o app em http://localhost:3000
 
 ## ROTAS
 

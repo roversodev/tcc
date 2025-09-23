@@ -19,14 +19,33 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
+import { Skeleton } from "@/components/ui/skeleton"
 import { CreateCompanyModal } from "@/components/create-company-modal"
 import { useAppContext } from "@/lib/contexts/app-context"
 
 export function TeamSwitcher() {
   const { isMobile } = useSidebar()
-  const { companies, currentCompany, switchCompany } = useAppContext()
+  const { companies, currentCompany, switchCompany, loading } = useAppContext()
   const router = useRouter()
   const [showCreateModal, setShowCreateModal] = React.useState(false)
+
+  // Mostrar skeleton durante o carregamento
+  if (loading) {
+    return (
+      <SidebarMenu>
+        <SidebarMenuItem>
+          <SidebarMenuButton size="lg" disabled>
+            <Skeleton className="aspect-square size-8 rounded-lg" />
+            <div className="grid flex-1 gap-1 text-left text-sm leading-tight">
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-3 w-16" />
+            </div>
+            <Skeleton className="ml-auto h-4 w-4" />
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+      </SidebarMenu>
+    )
+  }
 
   // Se não há empresa atual, não renderizar nada
   if (!currentCompany) {
