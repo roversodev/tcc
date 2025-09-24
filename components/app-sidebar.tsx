@@ -12,6 +12,7 @@ import {
   IconUsers,
   IconCalendarEvent,
   IconPackage,
+  IconTool,
 } from "@tabler/icons-react"
 
 import { NavMain } from "@/components/nav-main"
@@ -56,7 +57,12 @@ const data = {
       title: "Gestão de Clientes",
       url: "/clientes",
       icon: IconUsers,
-      }
+    },
+    {
+      title: "Serviços",
+      url: "/servicos",
+      icon: IconTool,
+    }
   ],
   navSecondary: [
     {

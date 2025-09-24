@@ -8,106 +8,42 @@ import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { IconPlus, IconSearch, IconPhone, IconMail, IconMapPin, IconEdit, IconTrash, IconUser, IconCalendar, IconCreditCard } from "@tabler/icons-react"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { IconPlus, IconSearch, IconPhone, IconMail, IconMapPin, IconEdit, IconUser, IconCalendar, IconCreditCard, IconLoader2, IconAlertTriangle } from "@tabler/icons-react"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
-
-interface Cliente {
-  id: string
-  nome: string
-  email: string
-  telefone: string
-  endereco: string
-  dataNascimento: string
-  categoria: "VIP" | "Regular" | "Novo"
-  ultimoAtendimento: string
-  totalGasto: number
-  observacoes: string
-  avatar?: string
-}
-
-const clientesIniciais: Cliente[] = [
-  {
-    id: "1",
-    nome: "Maria Silva Santos",
-    email: "maria.santos@email.com",
-    telefone: "(11) 99999-1234",
-    endereco: "Rua das Flores, 123 - Centro",
-    dataNascimento: "1985-03-15",
-    categoria: "VIP",
-    ultimoAtendimento: "2024-01-15",
-    totalGasto: 1250.00,
-    observacoes: "Cliente preferencial, gosta de cortes modernos"
-  },
-  {
-    id: "2",
-    nome: "João Carlos Oliveira",
-    email: "joao.oliveira@email.com",
-    telefone: "(11) 98888-5678",
-    endereco: "Av. Principal, 456 - Jardim América",
-    dataNascimento: "1990-07-22",
-    categoria: "Regular",
-    ultimoAtendimento: "2024-01-10",
-    totalGasto: 680.00,
-    observacoes: "Sempre pontual, prefere horários pela manhã"
-  },
-  {
-    id: "3",
-    nome: "Ana Paula Costa",
-    email: "ana.costa@email.com",
-    telefone: "(11) 97777-9012",
-    endereco: "Rua do Comércio, 789 - Vila Nova",
-    dataNascimento: "1988-11-08",
-    categoria: "VIP",
-    ultimoAtendimento: "2024-01-12",
-    totalGasto: 2100.00,
-    observacoes: "Nutricionista, sempre agenda consultas mensais"
-  },
-  {
-    id: "4",
-    nome: "Pedro Lima Ferreira",
-    email: "pedro.lima@email.com",
-    telefone: "(11) 96666-3456",
-    endereco: "Rua da Paz, 321 - Bela Vista",
-    dataNascimento: "1992-05-30",
-    categoria: "Regular",
-    ultimoAtendimento: "2024-01-08",
-    totalGasto: 420.00,
-    observacoes: "Massagista, cliente há 2 anos"
-  },
-  {
-    id: "5",
-    nome: "Carla Rodrigues",
-    email: "carla.rodrigues@email.com",
-    telefone: "(11) 95555-7890",
-    endereco: "Av. das Palmeiras, 654 - Jardim Paulista",
-    dataNascimento: "1995-12-03",
-    categoria: "Novo",
-    ultimoAtendimento: "2024-01-05",
-    totalGasto: 150.00,
-    observacoes: "Primeira vez no salão, indicada por Maria Silva"
-  }
-]
+import { useClients } from "@/hooks/use-clients"
+import { Client } from "@/lib/database.types"
+import { toast } from "sonner"
 
 export default function ClientesPage() {
-  const [clientes, setClientes] = useState<Cliente[]>(clientesIniciais)
+  const { 
+    clients, 
+    loading, 
+    error,
+    clientsStats,
+    createClient,
+    updateClient,
+    deleteClient
+  } = useClients()
+
   const [busca, setBusca] = useState("")
   const [filtroCategoria, setFiltroCategoria] = useState<string>("todos")
-  const [clienteSelecionado, setClienteSelecionado] = useState<Cliente | null>(null)
+  const [clienteSelecionado, setClienteSelecionado] = useState<Client | null>(null)
   const [dialogAberto, setDialogAberto] = useState(false)
   const [modoEdicao, setModoEdicao] = useState(false)
 
-  const clientesFiltrados = clientes.filter(cliente => {
+  const clientesFiltrados = clients.filter(cliente => {
     const matchBusca = cliente.nome.toLowerCase().includes(busca.toLowerCase()) ||
-                      cliente.email.toLowerCase().includes(busca.toLowerCase()) ||
-                      cliente.telefone.includes(busca)
+                      (cliente.email || '').toLowerCase().includes(busca.toLowerCase()) ||
+                      (cliente.telefone || '').includes(busca)
     
     const matchCategoria = filtroCategoria === "todos" || cliente.categoria === filtroCategoria
     
     return matchBusca && matchCategoria
   })
 
-  const abrirDialogCliente = (cliente?: Cliente) => {
+  const abrirDialogCliente = (cliente?: Client) => {
     if (cliente) {
       setClienteSelecionado(cliente)
       setModoEdicao(true)
@@ -131,6 +67,30 @@ export default function ClientesPage() {
     return nome.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
   }
 
+  if (loading) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <div className="flex items-center gap-2">
+          <IconLoader2 className="h-6 w-6 animate-spin" />
+          <span>Carregando clientes...</span>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <Alert className="max-w-md">
+          <IconAlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            Erro ao carregar clientes: {error}
+          </AlertDescription>
+        </Alert>
+      </div>
+    )
+  }
+
   return (
     <div className="flex-1 space-y-6 p-6">
       <div className="flex items-center justify-between">
@@ -147,7 +107,7 @@ export default function ClientesPage() {
               Novo Cliente
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="sm:max-w-xl">
             <DialogHeader>
               <DialogTitle>
                 {modoEdicao ? "Editar Cliente" : "Novo Cliente"}
@@ -156,7 +116,25 @@ export default function ClientesPage() {
                 {modoEdicao ? "Atualize as informações do cliente" : "Adicione um novo cliente ao seu cadastro"}
               </DialogDescription>
             </DialogHeader>
-            <FormularioCliente cliente={clienteSelecionado} onClose={() => setDialogAberto(false)} />
+            <FormularioCliente 
+              cliente={clienteSelecionado} 
+              onClose={() => setDialogAberto(false)}
+              onSave={async (data) => {
+                try {
+                  if (modoEdicao && clienteSelecionado) {
+                    await updateClient(clienteSelecionado.id, data)
+                    toast.success("Cliente atualizado com sucesso!")
+                  } else {
+                    await createClient(data)
+                    toast.success("Cliente criado com sucesso!")
+                  }
+                  setDialogAberto(false)
+                } catch (error) {
+                  toast.error("Erro ao salvar cliente")
+                  console.error(error)
+                }
+              }}
+            />
           </DialogContent>
         </Dialog>
       </div>
@@ -193,7 +171,7 @@ export default function ClientesPage() {
             <IconUser className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{clientes.length}</div>
+            <div className="text-2xl font-bold">{clientsStats.total}</div>
           </CardContent>
         </Card>
         <Card>
@@ -202,9 +180,7 @@ export default function ClientesPage() {
             <IconUser className="h-4 w-4 text-yellow-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {clientes.filter(c => c.categoria === "VIP").length}
-            </div>
+            <div className="text-2xl font-bold">{clientsStats.vip}</div>
           </CardContent>
         </Card>
         <Card>
@@ -213,9 +189,7 @@ export default function ClientesPage() {
             <IconUser className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {clientes.filter(c => c.categoria === "Novo").length}
-            </div>
+            <div className="text-2xl font-bold">{clientsStats.novo}</div>
           </CardContent>
         </Card>
         <Card>
@@ -225,7 +199,7 @@ export default function ClientesPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              R$ {clientes.reduce((acc, c) => acc + c.totalGasto, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              R$ {clientsStats.totalRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </div>
           </CardContent>
         </Card>
@@ -238,7 +212,7 @@ export default function ClientesPage() {
             <CardHeader className="pb-3">
               <div className="flex items-center space-x-3">
                 <Avatar>
-                  <AvatarImage src={cliente.avatar} />
+                  <AvatarImage src={cliente.avatar_url || undefined} />
                   <AvatarFallback>{getInitials(cliente.nome)}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
@@ -253,31 +227,39 @@ export default function ClientesPage() {
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="space-y-2 text-sm">
-                <div className="flex items-center text-muted-foreground">
-                  <IconMail className="mr-2 h-4 w-4" />
-                  <span className="truncate">{cliente.email}</span>
-                </div>
-                <div className="flex items-center text-muted-foreground">
-                  <IconPhone className="mr-2 h-4 w-4" />
-                  <span>{cliente.telefone}</span>
-                </div>
-                <div className="flex items-center text-muted-foreground">
-                  <IconMapPin className="mr-2 h-4 w-4" />
-                  <span className="truncate">{cliente.endereco}</span>
-                </div>
-                <div className="flex items-center text-muted-foreground">
-                  <IconCalendar className="mr-2 h-4 w-4" />
-                  <span>
-                    Último atendimento: {format(new Date(cliente.ultimoAtendimento), "dd/MM/yyyy", { locale: ptBR })}
-                  </span>
-                </div>
+                {cliente.email && (
+                  <div className="flex items-center text-muted-foreground">
+                    <IconMail className="mr-2 h-4 w-4" />
+                    <span className="truncate">{cliente.email}</span>
+                  </div>
+                )}
+                {cliente.telefone && (
+                  <div className="flex items-center text-muted-foreground">
+                    <IconPhone className="mr-2 h-4 w-4" />
+                    <span>{cliente.telefone}</span>
+                  </div>
+                )}
+                {cliente.endereco && (
+                  <div className="flex items-center text-muted-foreground">
+                    <IconMapPin className="mr-2 h-4 w-4" />
+                    <span className="truncate">{cliente.endereco}</span>
+                  </div>
+                )}
+                {cliente.ultimo_atendimento && (
+                  <div className="flex items-center text-muted-foreground">
+                    <IconCalendar className="mr-2 h-4 w-4" />
+                    <span>
+                      Último atendimento: {format(new Date(cliente.ultimo_atendimento), "dd/MM/yyyy", { locale: ptBR })}
+                    </span>
+                  </div>
+                )}
               </div>
               
               <div className="pt-2 border-t">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Total gasto:</span>
                   <span className="font-semibold text-green-600">
-                    R$ {cliente.totalGasto.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    R$ {cliente.total_gasto.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </span>
                 </div>
               </div>
@@ -317,12 +299,178 @@ export default function ClientesPage() {
   )
 }
 
-// Componente do formulário (será implementado na próxima etapa)
-function FormularioCliente({ cliente, onClose }: { cliente: Cliente | null, onClose: () => void }) {
+// Função para aplicar máscara de telefone
+const formatPhoneNumber = (value: string) => {
+  // Remove tudo que não é dígito
+  const cleanValue = value.replace(/\D/g, '')
+  
+  // Aplica a máscara baseada no tamanho
+  if (cleanValue.length <= 10) {
+    // Telefone fixo: (11) 1234-5678
+    return cleanValue.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3')
+  } else {
+    // Celular: (11) 91234-5678
+    return cleanValue.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3')
+  }
+}
+
+// Componente do formulário
+function FormularioCliente({ 
+  cliente, 
+  onClose, 
+  onSave 
+}: { 
+  cliente: Client | null
+  onClose: () => void
+  onSave: (data: any) => Promise<void>
+}) {
+  const [formData, setFormData] = useState({
+    nome: cliente?.nome || "",
+    email: cliente?.email || "",
+    telefone: cliente?.telefone || "",
+    endereco: cliente?.endereco || "",
+    data_nascimento: cliente?.data_nascimento || "",
+    categoria: cliente?.categoria || "Novo" as const,
+    observacoes: cliente?.observacoes || "",
+  })
+
+  const [errors, setErrors] = useState<Record<string, string>>({})
+  const [loading, setLoading] = useState(false)
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {}
+
+    if (!formData.nome.trim()) {
+      newErrors.nome = "Nome é obrigatório"
+    }
+
+    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = "Email inválido"
+    }
+
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatPhoneNumber(e.target.value)
+    setFormData(prev => ({ ...prev, telefone: formatted }))
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    if (!validateForm()) return
+
+    setLoading(true)
+    try {
+      await onSave(formData)
+    } catch (error) {
+      console.error('Erro ao salvar cliente:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
-    <div className="space-y-4">
-      <p className="text-muted-foreground">Formulário em desenvolvimento...</p>
-      <Button onClick={onClose}>Fechar</Button>
-    </div>
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Nome *</label>
+          <Input
+            value={formData.nome}
+            onChange={(e) => setFormData(prev => ({ ...prev, nome: e.target.value }))}
+            placeholder="Nome completo do cliente"
+            className={errors.nome ? "border-red-500" : ""}
+          />
+          {errors.nome && <p className="text-sm text-red-500">{errors.nome}</p>}
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Email</label>
+          <Input
+            type="email"
+            value={formData.email}
+            onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+            placeholder="email@exemplo.com"
+            className={errors.email ? "border-red-500" : ""}
+          />
+          {errors.email && <p className="text-sm text-red-500">{errors.email}</p>}
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Telefone</label>
+          <Input
+            value={formData.telefone}
+            onChange={handlePhoneChange}
+            placeholder="(11) 99999-9999"
+            maxLength={15}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Data de Nascimento</label>
+          <Input
+            type="date"
+            value={formData.data_nascimento}
+            onChange={(e) => setFormData(prev => ({ ...prev, data_nascimento: e.target.value }))}
+          />
+        </div>
+
+        <div className="space-y-2 md:col-span-2">
+          <label className="text-sm font-medium">Categoria</label>
+          <Select 
+            value={formData.categoria} 
+            onValueChange={(value: "VIP" | "Regular" | "Novo") => 
+              setFormData(prev => ({ ...prev, categoria: value }))
+            }
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Novo">Novo</SelectItem>
+              <SelectItem value="Regular">Regular</SelectItem>
+              <SelectItem value="VIP">VIP</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <label className="text-sm font-medium">Endereço</label>
+        <Input
+          value={formData.endereco}
+          onChange={(e) => setFormData(prev => ({ ...prev, endereco: e.target.value }))}
+          placeholder="Endereço completo"
+        />
+      </div>
+
+      <div className="space-y-2">
+        <label className="text-sm font-medium">Observações</label>
+        <textarea
+          className="w-full min-h-[100px] px-3 py-2 border border-input bg-background text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 rounded-md"
+          value={formData.observacoes}
+          onChange={(e) => setFormData(prev => ({ ...prev, observacoes: e.target.value }))}
+          placeholder="Observações sobre o cliente..."
+        />
+      </div>
+
+      <div className="flex gap-2 pt-4">
+        <Button type="button" variant="outline" onClick={onClose} className="flex-1">
+          Cancelar
+        </Button>
+        <Button type="submit" disabled={loading} className="flex-1">
+          {loading ? (
+            <>
+              <IconLoader2 className="mr-2 h-4 w-4 animate-spin" />
+              Salvando...
+            </>
+          ) : (
+            cliente ? "Atualizar" : "Criar Cliente"
+          )}
+        </Button>
+      </div>
+    </form>
   )
 }
