@@ -44,26 +44,15 @@ import {
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 
-// Lista de clientes fictícios para o select
-const clientesDisponiveis = [
-  { id: "1", nome: "Maria Silva Santos" },
-  { id: "2", nome: "João Carlos Oliveira" },
-  { id: "3", nome: "Ana Paula Costa" },
-  { id: "4", nome: "Pedro Lima Ferreira" },
-  { id: "5", nome: "Carla Rodrigues" },
-  { id: "6", nome: "Roberto Alves" },
-  { id: "7", nome: "Fernanda Rocha" },
-  { id: "8", nome: "Carlos Eduardo" },
-  { id: "9", nome: "Juliana Santos" },
-  { id: "10", nome: "Ricardo Pereira" }
-]
-
 interface EventDialogProps {
   event: CalendarEvent | null
   isOpen: boolean
   onClose: () => void
-  onSave: (event: CalendarEvent) => void
+  onSave: (event: CalendarEvent & { clientId?: string; serviceId?: string }) => void
   onDelete: (eventId: string) => void
+  clients?: { id: string; nome: string }[]
+  services?: { id: string; header: string; duration_minutes: number }[]
+  onServiceChange?: (serviceId: string, startDate: Date) => Date
 }
 
 export function EventDialog({
@@ -72,6 +61,9 @@ export function EventDialog({
   onClose,
   onSave,
   onDelete,
+  clients = [],
+  services = [],
+  onServiceChange,
 }: EventDialogProps) {
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
@@ -80,8 +72,8 @@ export function EventDialog({
   const [startTime, setStartTime] = useState(`${DefaultStartHour}:00`)
   const [endTime, setEndTime] = useState(`${DefaultEndHour}:00`)
   const [allDay, setAllDay] = useState(false)
-  const [location, setLocation] = useState("")
-  const [cliente, setCliente] = useState("")
+  const [clientId, setClientId] = useState("")
+  const [serviceId, setServiceId] = useState("")
   const [color, setColor] = useState<EventColor>("sky")
   const [error, setError] = useState<string | null>(null)
   const [startDateOpen, setStartDateOpen] = useState(false)
@@ -105,8 +97,8 @@ export function EventDialog({
       setStartTime(formatTimeForInput(start))
       setEndTime(formatTimeForInput(end))
       setAllDay(event.allDay || false)
-      setLocation(event.location || "")
-      setCliente(event.cliente || "")
+      setClientId(event.clientId || "")
+      setServiceId(event.serviceId || "")
       setColor((event.color as EventColor) || "sky")
       setError(null) // Reset error when opening dialog
     } else {
@@ -122,8 +114,8 @@ export function EventDialog({
     setStartTime(`${DefaultStartHour}:00`)
     setEndTime(`${DefaultEndHour}:00`)
     setAllDay(false)
-    setLocation("")
-    setCliente("")
+    setClientId("")
+    setServiceId("")
     setColor("sky")
     setError(null)
   }
@@ -151,9 +143,44 @@ export function EventDialog({
     return options
   }, []) // Empty dependency array ensures this only runs once
 
+  // Handle service selection and auto-calculate end time
+  const handleServiceChange = (selectedServiceId: string) => {
+    setServiceId(selectedServiceId)
+    
+    if (selectedServiceId && onServiceChange && !allDay) {
+      const startDateTime = new Date(
+        startDate.getFullYear(),
+        startDate.getMonth(),
+        startDate.getDate(),
+        parseInt(startTime.split(":")[0]),
+        parseInt(startTime.split(":")[1])
+      )
+      
+      const calculatedEndDate = onServiceChange(selectedServiceId, startDateTime)
+      
+      // Verificar se a data calculada é válida
+      if (calculatedEndDate && !isNaN(calculatedEndDate.getTime())) {
+        setEndDate(calculatedEndDate)
+        setEndTime(formatTimeForInput(calculatedEndDate))
+      } else {
+        console.error("Data de fim calculada é inválida:", calculatedEndDate)
+      }
+    }
+  }
+
   const handleSave = () => {
     if (!title.trim()) {
       setError("O título é obrigatório")
+      return
+    }
+
+    if (!clientId) {
+      setError("Selecione um cliente")
+      return
+    }
+
+    if (!serviceId) {
+      setError("Selecione um serviço")
       return
     }
 
@@ -182,15 +209,19 @@ export function EventDialog({
       return
     }
 
-    const newEvent: CalendarEvent = {
-      id: event?.id || Date.now().toString(),
-      title: title.trim(),
+    const selectedClient = clients.find(c => c.id === clientId)
+    const selectedService = services.find(s => s.id === serviceId)
+
+    const newEvent: CalendarEvent & { clientId?: string; serviceId?: string } = {
+      id: event?.id || "", // Para novos eventos, deixar vazio para o banco gerar UUID
+      title: title.trim() || (selectedService ? selectedService.header : "Evento sem título"),
       description: description.trim(),
       start: startDateTime,
       end: endDateTime,
       allDay,
-      location: location.trim(),
-      cliente: cliente,
+      cliente: selectedClient?.nome,
+      clientId,
+      serviceId,
       color,
     }
 
@@ -205,88 +236,56 @@ export function EventDialog({
     }
   }
 
-  // Updated color options to match types.ts
-  const colorOptions: Array<{
-    value: EventColor
-    label: string
-    bgClass: string
-    borderClass: string
-  }> = [
-    {
-      value: "sky",
-      label: "Sky",
-      bgClass: "bg-sky-400 data-[state=checked]:bg-sky-400",
-      borderClass: "border-sky-400 data-[state=checked]:border-sky-400",
-    },
-    {
-      value: "amber",
-      label: "Amber",
-      bgClass: "bg-amber-400 data-[state=checked]:bg-amber-400",
-      borderClass: "border-amber-400 data-[state=checked]:border-amber-400",
-    },
-    {
-      value: "violet",
-      label: "Violet",
-      bgClass: "bg-violet-400 data-[state=checked]:bg-violet-400",
-      borderClass: "border-violet-400 data-[state=checked]:border-violet-400",
-    },
-    {
-      value: "rose",
-      label: "Rose",
-      bgClass: "bg-rose-400 data-[state=checked]:bg-rose-400",
-      borderClass: "border-rose-400 data-[state=checked]:border-rose-400",
-    },
-    {
-      value: "emerald",
-      label: "Emerald",
-      bgClass: "bg-emerald-400 data-[state=checked]:bg-emerald-400",
-      borderClass: "border-emerald-400 data-[state=checked]:border-emerald-400",
-    },
-    {
-      value: "orange",
-      label: "Orange",
-      bgClass: "bg-orange-400 data-[state=checked]:bg-orange-400",
-      borderClass: "border-orange-400 data-[state=checked]:border-orange-400",
-    },
-  ]
+  const colorOptions = [
+    { value: "sky", label: "Azul", bgClass: "bg-sky-500", borderClass: "border-sky-500" },
+    { value: "amber", label: "Âmbar", bgClass: "bg-amber-500", borderClass: "border-amber-500" },
+    { value: "violet", label: "Violeta", bgClass: "bg-violet-500", borderClass: "border-violet-500" },
+    { value: "rose", label: "Rosa", bgClass: "bg-rose-500", borderClass: "border-rose-500" },
+    { value: "emerald", label: "Esmeralda", bgClass: "bg-emerald-500", borderClass: "border-emerald-500" },
+    { value: "orange", label: "Laranja", bgClass: "bg-orange-500", borderClass: "border-orange-500" },
+  ] as const
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[425px]">
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{event?.id ? "Editar Agendamento" : "Novo Agendamento"}</DialogTitle>
-          <DialogDescription className="sr-only">
-            {event?.id
-              ? "Edit the details of this event"
-              : "Add a new event to your calendar"}
+          <DialogTitle>
+            {event ? "Editar Compromisso" : "Novo Compromisso"}
+          </DialogTitle>
+          <DialogDescription>
+            {event 
+              ? "Edite as informações do compromisso." 
+              : "Preencha as informações para agendar um novo compromisso."
+            }
           </DialogDescription>
         </DialogHeader>
-        {error && (
-          <div className="bg-destructive/15 text-destructive rounded-md px-3 py-2 text-sm">
-            {error}
-          </div>
-        )}
-        <div className="grid gap-4 py-4">
+        <div className="space-y-4 py-4">
+          {error && (
+            <div className="text-sm text-red-600 bg-red-50 p-2 rounded">
+              {error}
+            </div>
+          )}
+
           <div className="*:not-first:mt-1.5">
-            <Label htmlFor="title">Título</Label>
+            <Label htmlFor="title">Título do Evento *</Label>
             <Input
               id="title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
+              placeholder="Digite o título do evento"
             />
           </div>
 
           <div className="*:not-first:mt-1.5">
-            <Label htmlFor="cliente">Cliente</Label>
-            <Select value={cliente} onValueChange={setCliente}>
+            <Label htmlFor="cliente">Cliente *</Label>
+            <Select value={clientId} onValueChange={setClientId}>
               <SelectTrigger id="cliente">
                 <SelectValue placeholder="Selecionar cliente" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="nenhum">Nenhum cliente</SelectItem>
-                {clientesDisponiveis.map((clienteItem) => (
-                  <SelectItem key={clienteItem.id} value={clienteItem.nome}>
-                    {clienteItem.nome}
+                {clients.map((client) => (
+                  <SelectItem key={client.id} value={client.id}>
+                    {client.nome}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -294,7 +293,23 @@ export function EventDialog({
           </div>
 
           <div className="*:not-first:mt-1.5">
-            <Label htmlFor="description">Descrição</Label>
+            <Label htmlFor="servico">Serviço *</Label>
+            <Select value={serviceId} onValueChange={handleServiceChange}>
+              <SelectTrigger id="servico">
+                <SelectValue placeholder="Selecionar serviço" />
+              </SelectTrigger>
+              <SelectContent>
+                {services.map((service) => (
+                  <SelectItem key={service.id} value={service.id}>
+                    {service.header} ({service.duration_minutes} min)
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="*:not-first:mt-1.5">
+            <Label htmlFor="description">Observações</Label>
             <Textarea
               id="description"
               value={description}
@@ -346,6 +361,24 @@ export function EventDialog({
                         }
                         setError(null)
                         setStartDateOpen(false)
+                        
+                        // Recalculate end time if service is selected
+                        if (serviceId && onServiceChange && !allDay) {
+                          const startDateTime = new Date(
+                            date.getFullYear(),
+                            date.getMonth(),
+                            date.getDate(),
+                            parseInt(startTime.split(":")[0]),
+                            parseInt(startTime.split(":")[1])
+                          )
+                          const calculatedEndDate = onServiceChange(serviceId, startDateTime)
+                          
+                          // Verificar se a data calculada é válida
+                          if (calculatedEndDate && !isNaN(calculatedEndDate.getTime())) {
+                            setEndDate(calculatedEndDate)
+                            setEndTime(formatTimeForInput(calculatedEndDate))
+                          }
+                        }
                       }
                     }}
                   />
@@ -356,7 +389,29 @@ export function EventDialog({
             {!allDay && (
               <div className="min-w-28 *:not-first:mt-1.5">
                 <Label htmlFor="start-time">Hora de Inicio</Label>
-                <Select value={startTime} onValueChange={setStartTime}>
+                <Select 
+                  value={startTime} 
+                  onValueChange={(value) => {
+                    setStartTime(value)
+                    // Recalculate end time if service is selected
+                    if (serviceId && onServiceChange) {
+                      const startDateTime = new Date(
+                        startDate.getFullYear(),
+                        startDate.getMonth(),
+                        startDate.getDate(),
+                        parseInt(value.split(":")[0]),
+                        parseInt(value.split(":")[1])
+                      )
+                      const calculatedEndDate = onServiceChange(serviceId, startDateTime)
+                      
+                      // Verificar se a data calculada é válida
+                      if (calculatedEndDate && !isNaN(calculatedEndDate.getTime())) {
+                        setEndDate(calculatedEndDate)
+                        setEndTime(formatTimeForInput(calculatedEndDate))
+                      }
+                    }
+                  }}
+                >
                   <SelectTrigger id="start-time">
                     <SelectValue placeholder="Hora de Inicio" />
                   </SelectTrigger>
@@ -391,7 +446,7 @@ export function EventDialog({
                         !endDate && "text-muted-foreground"
                       )}
                     >
-                      {startDate ? format(startDate, "PPP", { locale: ptBR }) : "Selecionar data"}
+                      {endDate && !isNaN(endDate.getTime()) ? format(endDate, "PPP", { locale: ptBR }) : "Selecionar data"}
                     </span>
                     <RiCalendarLine
                       size={16}
@@ -437,23 +492,15 @@ export function EventDialog({
             )}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="*:not-first:mt-1.5">
             <Checkbox
               id="all-day"
               checked={allDay}
-              onCheckedChange={(checked) => setAllDay(checked === true)}
+              onCheckedChange={(checked) => setAllDay(checked as boolean)}
             />
             <Label htmlFor="all-day">Dia Inteiro</Label>
           </div>
 
-          <div className="*:not-first:mt-1.5">
-            <Label htmlFor="location">Localização</Label>
-            <Input
-              id="location"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-            />
-          </div>
           <fieldset className="space-y-4">
             <legend className="text-foreground text-sm leading-none font-medium">
               Etiqueta

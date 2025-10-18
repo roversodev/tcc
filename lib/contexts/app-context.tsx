@@ -108,9 +108,13 @@ export function AppProvider({ children }: AppProviderProps) {
         } else {
           setCurrentCompany(companiesData?.[0] || null)
         }
+
+        console.log("AppContext - Empresas carregadas:", companiesData?.length || 0)
+        console.log("AppContext - Empresa atual:", companiesData?.[0]?.name || "Nenhuma")
       } else {
         setCompanies([])
         setCurrentCompany(null)
+        console.log("AppContext - Nenhuma empresa encontrada para o usuário")
       }
 
     } catch (error) {

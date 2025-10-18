@@ -49,11 +49,14 @@ import { ptBR } from "date-fns/locale/pt-BR"
 
 export interface EventCalendarProps {
   events?: CalendarEvent[]
-  onEventAdd?: (event: CalendarEvent) => void
-  onEventUpdate?: (event: CalendarEvent) => void
+  onEventAdd?: (event: CalendarEvent & { clientId?: string; serviceId?: string }) => void
+  onEventUpdate?: (event: CalendarEvent & { clientId?: string; serviceId?: string }) => void
   onEventDelete?: (eventId: string) => void
   className?: string
   initialView?: CalendarView
+  clients?: { id: string; nome: string }[]
+  services?: { id: string; header: string; duration_minutes: number }[]
+  onServiceChange?: (serviceId: string, startDate: Date) => Date
 }
 
 export function EventCalendar({
@@ -63,6 +66,9 @@ export function EventCalendar({
   onEventDelete,
   className,
   initialView = "month",
+  clients = [],
+  services = [],
+  onServiceChange,
 }: EventCalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [view, setView] = useState<CalendarView>(initialView)
@@ -171,7 +177,7 @@ export function EventCalendar({
     setIsEventDialogOpen(true)
   }
 
-  const handleEventSave = (event: CalendarEvent) => {
+  const handleEventSave = (event: CalendarEvent & { clientId?: string; serviceId?: string }) => {
     if (event.id) {
       onEventUpdate?.(event)
       // Show toast notification when an event is updated
@@ -409,6 +415,9 @@ export function EventCalendar({
           }}
           onSave={handleEventSave}
           onDelete={handleEventDelete}
+          clients={clients}
+          services={services}
+          onServiceChange={onServiceChange}
         />
       </CalendarDndProvider>
     </div>
