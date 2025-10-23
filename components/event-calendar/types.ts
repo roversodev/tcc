@@ -9,7 +9,7 @@ export interface CalendarEvent {
   allDay?: boolean
   color?: EventColor
   cliente?: string
-  // Campos adicionais para integração com backend
+  location?: string
   clientId?: string
   serviceId?: string
   status?: 'scheduled' | 'confirmed' | 'completed' | 'cancelled'

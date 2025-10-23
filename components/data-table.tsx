@@ -286,7 +286,6 @@ const columns: ColumnDef<z.infer<typeof schema>>[] = [
           <Select>
             <SelectTrigger
               className="w-38 **:data-[slot=select-value]:block **:data-[slot=select-value]:truncate"
-              size="sm"
               id={`${row.original.id}-reviewer`}
             >
               <SelectValue placeholder="Assign reviewer" />
@@ -430,7 +429,6 @@ export function DataTable({
         <Select defaultValue="servicos">
           <SelectTrigger
             className="flex w-fit @4xl/main:hidden"
-            size="sm"
             id="view-selector"
           >
             <SelectValue placeholder="Selecionar visualização" />
@@ -569,7 +567,7 @@ export function DataTable({
                   table.setPageSize(Number(value))
                 }}
               >
-                <SelectTrigger size="sm" className="w-20" id="rows-per-page">
+                <SelectTrigger className="w-20" id="rows-per-page">
                   <SelectValue
                     placeholder={table.getState().pagination.pageSize}
                   />

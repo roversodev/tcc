@@ -5,11 +5,10 @@ import { addDays, setHours, setMinutes, subDays } from "date-fns"
 
 import {
   EventCalendar,
-  type CalendarEvent,
 } from "@/components/event-calendar/event-calendar"
 
 // Sample events data with hardcoded times
-const sampleEvents: CalendarEvent[] = [
+const sampleEvents: any[] = [
   {
     id: "1",
     title: "Annual Planning",
@@ -133,13 +132,13 @@ const sampleEvents: CalendarEvent[] = [
 ]
 
 export default function Component() {
-  const [events, setEvents] = useState<CalendarEvent[]>(sampleEvents)
+  const [events, setEvents] = useState<any[]>(sampleEvents)
 
-  const handleEventAdd = (event: CalendarEvent) => {
+  const handleEventAdd = (event: any) => {
     setEvents([...events, event])
   }
 
-  const handleEventUpdate = (updatedEvent: CalendarEvent) => {
+  const handleEventUpdate = (updatedEvent: any) => {
     setEvents(
       events.map((event) =>
         event.id === updatedEvent.id ? updatedEvent : event
