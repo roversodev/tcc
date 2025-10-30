@@ -24,6 +24,8 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import InputSenhaForte from "@/components/InputSenhaForte"
+import { useAuth } from "@/hooks/use-auth"
+import { createClient } from "@/lib/supabase/client"
 
 const resetPasswordSchema = z.object({
   password: z
@@ -41,12 +43,15 @@ const resetPasswordSchema = z.object({
 
 type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>
 
-export default function ResetPasswordForm() {
+function ResetPasswordFormContent() {
   const [isLoading, setIsLoading] = useState(false)
   const [passwordReset, setPasswordReset] = useState(false)
   const [isValidToken, setIsValidToken] = useState<boolean | null>(null)
   const [isCheckingToken, setIsCheckingToken] = useState(true)
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const { updatePassword } = useAuth()
+  const supabase = createClient()
 
   const form = useForm<ResetPasswordFormData>({
     resolver: zodResolver(resetPasswordSchema),
@@ -55,6 +60,78 @@ export default function ResetPasswordForm() {
       confirmPassword: "",
     },
   })
+
+  // Verificar token ao carregar o componente
+  useEffect(() => {
+    const checkToken = async () => {
+      try {
+        // Verificar se há parâmetros de hash na URL (formato do Supabase)
+        const hashParams = new URLSearchParams(window.location.hash.substring(1))
+        const accessToken = hashParams.get('access_token')
+        const refreshToken = hashParams.get('refresh_token')
+        const type = hashParams.get('type')
+
+        if (type === 'recovery' && accessToken && refreshToken) {
+          // Definir a sessão com os tokens
+          const { data, error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken
+          })
+
+          if (error) {
+            console.error('Erro ao definir sessão:', error)
+            setIsValidToken(false)
+          } else {
+            setIsValidToken(true)
+          }
+        } else {
+          // Verificar se já existe uma sessão válida
+          const { data: { session }, error } = await supabase.auth.getSession()
+          
+          if (error || !session) {
+            setIsValidToken(false)
+          } else {
+            setIsValidToken(true)
+          }
+        }
+      } catch (error) {
+        console.error('Erro ao verificar token:', error)
+        setIsValidToken(false)
+      } finally {
+        setIsCheckingToken(false)
+      }
+    }
+
+    checkToken()
+  }, [supabase.auth])
+
+  // Função para lidar com o submit do formulário
+  const onSubmit = async (data: ResetPasswordFormData) => {
+    setIsLoading(true)
+    
+    try {
+      const { error } = await updatePassword(data.password)
+      
+      if (error) {
+        toast.error(error.message || "Erro ao atualizar senha")
+        return
+      }
+
+      setPasswordReset(true)
+      toast.success("Senha atualizada com sucesso!")
+      
+      // Redirecionar para login após 3 segundos
+      setTimeout(() => {
+        router.push("/login")
+      }, 3000)
+      
+    } catch (error) {
+      console.error('Erro ao atualizar senha:', error)
+      toast.error("Erro inesperado ao atualizar senha")
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   if (isCheckingToken) {
     return (
@@ -127,7 +204,7 @@ export default function ResetPasswordForm() {
         </CardHeader>
         <CardContent>
           <Form {...form}>
-            <form className="space-y-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
                 control={form.control}
                 name="password"
@@ -171,5 +248,20 @@ export default function ResetPasswordForm() {
         </CardContent>
       </Card>
     </div>
+  )
+}
+
+export default function ResetPasswordForm() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">Carregando...</p>
+        </div>
+      </div>
+    }>
+      <ResetPasswordFormContent />
+    </Suspense>
   )
 }
