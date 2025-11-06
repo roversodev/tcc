@@ -179,6 +179,83 @@ export function useProducts() {
     }
   }
 
+  // NOVO: criar movimentação de estoque (entrada/saída) com custo médio ponderado
+  const createMovement = async (args: {
+    product_id: string
+    type: 'entrada' | 'saida'
+    quantidade: number
+    unit_cost?: number | null
+    note?: string
+  }) => {
+    const { product_id, type, quantidade, unit_cost = null, note } = args
+    if (!currentCompany?.id || !user?.id) {
+      throw new Error('Empresa ou usuário não encontrado')
+    }
+
+    // Buscar produto atual (quantidade e custo)
+    const { data: prod, error: pErr } = await supabase
+      .from('products')
+      .select('id, quantidade, cost_price')
+      .eq('id', product_id)
+      .eq('company_id', currentCompany.id)
+      .single()
+    if (pErr) throw pErr
+
+    const currentQty = prod.quantidade ?? 0
+    const currentCost = prod.cost_price ?? 0
+
+    let newQty = currentQty
+    let newAvgCost = currentCost
+
+    if (type === 'entrada') {
+      const incomingCost = Number(unit_cost ?? 0)
+      newQty = currentQty + quantidade
+      // custo médio ponderado
+      newAvgCost = newQty > 0
+        ? ((currentQty * currentCost) + (quantidade * incomingCost)) / newQty
+        : incomingCost
+    } else {
+      if (quantidade > currentQty) {
+        throw new Error('Quantidade de saída maior que o estoque atual')
+      }
+      newQty = currentQty - quantidade
+      // saída não altera custo médio
+    }
+
+    // Inserir movimentação
+    const { error: mErr } = await supabase
+      .from('product_movements')
+      .insert({
+        company_id: currentCompany.id,
+        product_id,
+        type,
+        quantidade,
+        unit_cost: type === 'entrada' ? Number(unit_cost ?? 0) : currentCost,
+        note,
+        created_by: user.id,
+      })
+    if (mErr) throw mErr
+
+    // Atualizar produto: quantidade e custo médio; data_ultima_entrada apenas em entrada
+    const updatePayload: any = {
+      quantidade: newQty,
+      cost_price: newAvgCost,
+      status: newQty <= 0 ? 'Estoque Baixo' : 'Ativo',
+    }
+    if (type === 'entrada') {
+      updatePayload.data_ultima_entrada = new Date().toISOString()
+    }
+
+    const { error: uErr } = await supabase
+      .from('products')
+      .update(updatePayload)
+      .eq('id', product_id)
+      .eq('company_id', currentCompany.id)
+    if (uErr) throw uErr
+
+    await fetchProducts()
+  }
+
   // Produtos com estoque baixo
   const lowStockProducts = products.filter(product => 
     product.quantidade <= product.estoque_minimo
@@ -211,5 +288,7 @@ export function useProducts() {
     deleteProduct,
     createCategory,
     updateStock,
+    // NOVO
+    createMovement,
   }
 }

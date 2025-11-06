@@ -42,7 +42,8 @@ export default function EstoquePage() {
     createCategory,
     updateStock,
     lowStockProducts,
-    totalStockValue
+    totalStockValue,
+    createMovement,
   } = useProducts()
 
   const [busca, setBusca] = useState("")
@@ -50,7 +51,7 @@ export default function EstoquePage() {
   const [filtroStatus, setFiltroStatus] = useState<string>("todos")
   const [produtoSelecionado, setProdutoSelecionado] = useState<Product | null>(null)
   const [dialogAberto, setDialogAberto] = useState(false)
-  const [dialogEstoque, setDialogEstoque] = useState(false)
+  const [dialogMovimento, setDialogMovimento] = useState(false)
   const [modoEdicao, setModoEdicao] = useState(false)
   const [novaCategoria, setNovaCategoria] = useState("")
   const [mostrarNovaCategoria, setMostrarNovaCategoria] = useState(false)
@@ -77,9 +78,13 @@ export default function EstoquePage() {
     setDialogAberto(true)
   }
 
-  const abrirDialogEstoque = (produto: Product) => {
-    setProdutoSelecionado(produto)
-    setDialogEstoque(true)
+  const abrirDialogMovimento = (produto?: Product) => {
+    if (produto) {
+      setProdutoSelecionado(produto)
+    } else {
+      setProdutoSelecionado(null)
+    }
+    setDialogMovimento(true)
   }
 
   const getCategoriaColor = (categoriaId: string | null) => {
@@ -203,9 +208,9 @@ export default function EstoquePage() {
 
       {/* Alertas de Estoque Baixo */}
       {lowStockProducts.length > 0 && (
-        <Alert className="border-red-200 bg-red-50">
+        <Alert className="border-red-200 bg-red-50 dark:bg-red-900/20 dark:border-red-900/60">
           <IconAlertTriangle className="h-4 w-4 text-red-600" />
-          <AlertDescription className="text-red-800">
+          <AlertDescription className="text-red-800 dark:text-red-200">
             <strong>Atenção!</strong> Você tem {lowStockProducts.length} produto(s) com estoque baixo:
             <span className="ml-2 font-medium">
               {lowStockProducts.map(p => p.nome).join(", ")}
@@ -405,10 +410,10 @@ export default function EstoquePage() {
                   variant="outline" 
                   size="sm" 
                   className="flex-1"
-                  onClick={() => abrirDialogEstoque(produto)}
+                  onClick={() => abrirDialogMovimento(produto)}
                 >
                   <IconPlus className="mr-2 h-4 w-4" />
-                  Estoque
+                  Movimentar
                 </Button>
               </div>
             </CardContent>
@@ -428,28 +433,27 @@ export default function EstoquePage() {
         </div>
       )}
 
-      {/* Dialog para atualizar estoque */}
-      <Dialog open={dialogEstoque} onOpenChange={setDialogEstoque}>
+      {/* Dialog para movimentar estoque */}
+      <Dialog open={dialogMovimento} onOpenChange={setDialogMovimento}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Atualizar Estoque</DialogTitle>
+            <DialogTitle>Nova Movimentação</DialogTitle>
             <DialogDescription>
-              Atualize a quantidade em estoque do produto: {produtoSelecionado?.nome}
+              Registre uma entrada (compra) ou saída (vencimento, perda, uso).
             </DialogDescription>
           </DialogHeader>
-          <DialogEstoque 
+          <DialogMovimento
             produto={produtoSelecionado}
-            onClose={() => setDialogEstoque(false)}
-            onSave={async (quantidade) => {
-              if (produtoSelecionado) {
-                try {
-                  await updateStock(produtoSelecionado.id, quantidade)
-                  toast.success("Estoque atualizado com sucesso!")
-                  setDialogEstoque(false)
-                } catch (error) {
-                  toast.error("Erro ao atualizar estoque")
-                  console.error(error)
-                }
+            products={products}
+            onClose={() => setDialogMovimento(false)}
+            onSave={async (args) => {
+              try {
+                await createMovement(args)
+                toast.success("Movimentação registrada com sucesso!")
+                setDialogMovimento(false)
+              } catch (error) {
+                toast.error("Erro ao registrar movimentação")
+                console.error(error)
               }
             }}
           />
@@ -487,6 +491,7 @@ function FormularioProduto({
     descricao: produto?.descricao || "",
     unidade: produto?.unidade || "un" as const
   })
+  const isEdit = !!produto
 
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(false)
@@ -516,10 +521,6 @@ function FormularioProduto({
       newErrors.preco = "Preço deve ser maior que zero"
     }
 
-    if (formData.quantidade === undefined || formData.quantidade < 0) {
-      newErrors.quantidade = "Quantidade deve ser maior ou igual a zero"
-    }
-
     if (!formData.estoque_minimo || formData.estoque_minimo < 0) {
       newErrors.estoque_minimo = "Estoque mínimo deve ser maior ou igual a zero"
     }
@@ -528,8 +529,14 @@ function FormularioProduto({
       newErrors.fornecedor = "Fornecedor é obrigatório"
     }
 
-    if (!formData.data_ultima_entrada) {
-      newErrors.data_ultima_entrada = "Data da última entrada é obrigatória"
+    // Somente na criação validar quantidade e data_ultima_entrada
+    if (!isEdit) {
+      if (formData.quantidade === undefined || formData.quantidade < 0) {
+        newErrors.quantidade = "Quantidade deve ser maior ou igual a zero"
+      }
+      if (!formData.data_ultima_entrada) {
+        newErrors.data_ultima_entrada = "Data da última entrada é obrigatória"
+      }
     }
 
     setErrors(newErrors)
@@ -695,6 +702,7 @@ function FormularioProduto({
               onChange={(e) => handleInputChange('cost_price', parseFloat(e.target.value) || 0)}
               placeholder="0,00"
               className="pl-10"
+              disabled={isEdit}
             />
           </div>
         </div>
@@ -709,8 +717,9 @@ function FormularioProduto({
             onChange={(e) => handleInputChange('quantidade', parseInt(e.target.value) || 0)}
             placeholder="0"
             className={errors.quantidade ? "border-red-500" : ""}
+            disabled={isEdit}
           />
-          {errors.quantidade && <p className="text-sm text-red-500">{errors.quantidade}</p>}
+          {!isEdit && errors.quantidade && <p className="text-sm text-red-500">{errors.quantidade}</p>}
         </div>
 
         {/* Estoque Mínimo */}
@@ -752,9 +761,10 @@ function FormularioProduto({
               value={formData.data_ultima_entrada}
               onChange={(e) => handleInputChange('data_ultima_entrada', e.target.value)}
               className={`pl-10 ${errors.data_ultima_entrada ? "border-red-500" : ""}`}
+              disabled={isEdit}
             />
           </div>
-          {errors.data_ultima_entrada && <p className="text-sm text-red-500">{errors.data_ultima_entrada}</p>}
+          {!isEdit && errors.data_ultima_entrada && <p className="text-sm text-red-500">{errors.data_ultima_entrada}</p>}
         </div>
 
         {/* Status */}
@@ -937,6 +947,175 @@ function DialogEstoque({
         <Button type="submit" disabled={loading}>
           {loading && <IconLoader2 className="mr-2 h-4 w-4 animate-spin" />}
           Atualizar Estoque
+        </Button>
+      </div>
+    </form>
+  )
+}
+
+
+function DialogMovimento({
+  produto,
+  products,
+  onClose,
+  onSave
+}: {
+  produto: Product | null
+  products: Product[]
+  onClose: () => void
+  onSave: (args: { product_id: string; type: 'entrada' | 'saida'; quantidade: number; unit_cost?: number | null; note?: string }) => Promise<void>
+}) {
+  const [selectedProductId, setSelectedProductId] = useState(produto?.id || "")
+  const [type, setType] = useState<'entrada' | 'saida'>('entrada')
+  const [quantidade, setQuantidade] = useState<number>(0)
+  const [unitCost, setUnitCost] = useState<number | null>(null)
+  const [note, setNote] = useState<string>("")
+  const [loading, setLoading] = useState(false)
+
+  const selected = products.find(p => p.id === selectedProductId) || null
+  const currentQty = selected?.quantidade ?? 0
+  const currentCost = selected?.cost_price ?? 0
+
+  const previewQty = type === 'entrada' ? currentQty + quantidade : Math.max(0, currentQty - quantidade)
+  const previewCost = type === 'entrada'
+    ? (() => {
+        const inc = Number(unitCost ?? 0)
+        const total = currentQty + quantidade
+        return total > 0 ? ((currentQty * currentCost) + (quantidade * inc)) / total : inc
+      })()
+    : currentCost
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!selectedProductId) {
+      toast.error("Selecione um produto")
+      return
+    }
+    if (quantidade <= 0) {
+      toast.error("Quantidade deve ser maior que zero")
+      return
+    }
+    if (type === 'entrada' && (unitCost === null || unitCost < 0)) {
+      toast.error("Informe o custo unitário da entrada")
+      return
+    }
+    if (type === 'saida' && quantidade > currentQty) {
+      toast.error("Quantidade de saída maior que estoque atual")
+      return
+    }
+
+    setLoading(true)
+    try {
+      await onSave({
+        product_id: selectedProductId,
+        type,
+        quantidade,
+        unit_cost: type === 'entrada' ? Number(unitCost ?? 0) : undefined,
+        note: note?.trim() || undefined,
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      {!produto && (
+        <div className="space-y-2">
+          <Label>Produto</Label>
+          <Select value={selectedProductId} onValueChange={setSelectedProductId}>
+            <SelectTrigger>
+              <SelectValue placeholder="Selecione um produto" />
+            </SelectTrigger>
+            <SelectContent>
+              {products.map(p => (
+                <SelectItem key={p.id} value={p.id}>
+                  {p.nome} • Estoque: {p.quantidade} • Custo médio: R$ {(p.cost_price ?? 0).toFixed(2)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>Tipo</Label>
+          <Select value={type} onValueChange={(v: 'entrada' | 'saida') => setType(v)}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="entrada">Entrada</SelectItem>
+              <SelectItem value="saida">Saída</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label>Quantidade</Label>
+          <Input
+            type="number"
+            min={0}
+            step="0.01"
+            value={quantidade}
+            onChange={(e) => setQuantidade(parseFloat(e.target.value) || 0)}
+            placeholder="0"
+          />
+        </div>
+
+        {type === 'entrada' && (
+          <div className="space-y-2">
+            <Label>Custo unitário (R$)</Label>
+            <Input
+              type="number"
+              min={0}
+              step="0.01"
+              value={unitCost ?? 0}
+              onChange={(e) => setUnitCost(parseFloat(e.target.value) || 0)}
+              placeholder="0,00"
+            />
+          </div>
+        )}
+
+        <div className="space-y-2 md:col-span-2">
+          <Label>Observação</Label>
+          <Input
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="Ex: NF 1234, fornecedor X"
+          />
+        </div>
+      </div>
+
+      {selected && (
+        <div className="bg-muted/50 p-3 rounded-md text-sm">
+          <div className="flex justify-between">
+            <span>Estoque atual</span>
+            <span>{currentQty} {selected.unidade}</span>
+          </div>
+          <div className="flex justify-between">
+            <span>Custo médio atual</span>
+            <span>R$ {currentCost.toFixed(2)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span>Estoque após</span>
+            <span>{previewQty} {selected.unidade}</span>
+          </div>
+          <div className="flex justify-between">
+            <span>Custo médio após</span>
+            <span>R$ {previewCost.toFixed(2)}</span>
+          </div>
+        </div>
+      )}
+
+      <div className="flex justify-end gap-2">
+        <Button type="button" variant="outline" onClick={onClose}>
+          Cancelar
+        </Button>
+        <Button type="submit" disabled={loading}>
+          {loading && <IconLoader2 className="mr-2 h-4 w-4 animate-spin" />}
+          Registrar
         </Button>
       </div>
     </form>

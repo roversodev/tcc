@@ -405,6 +405,41 @@ export interface Database {
           created_at?: string
         }
       }
+      product_movements: {
+        Row: {
+          id: string
+          company_id: string
+          product_id: string
+          type: 'entrada' | 'saida'
+          quantidade: number
+          unit_cost: number | null
+          note: string | null
+          created_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          company_id: string
+          product_id: string
+          type: 'entrada' | 'saida'
+          quantidade: number
+          unit_cost?: number | null
+          note?: string | null
+          created_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          company_id?: string
+          product_id?: string
+          type?: 'entrada' | 'saida'
+          quantidade?: number
+          unit_cost?: number | null
+          note?: string | null
+          created_by?: string | null
+          created_at?: string
+        }
+      }
       service_materials: {
         Row: {
           id: string
@@ -495,3 +530,4 @@ export type ServiceUpdate = Database['public']['Tables']['services']['Update']
 export type EventUpdate = Database['public']['Tables']['events']['Update']
 export type FinancialMovementUpdate = Database['public']['Tables']['financial_movements']['Update']
 export type ServiceMaterial = Database['public']['Tables']['service_materials']['Row']
+export type ProductMovement = Database['public']['Tables']['product_movements']['Row']
