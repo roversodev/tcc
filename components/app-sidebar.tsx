@@ -54,6 +54,11 @@ const data = {
       icon: IconPackage,
     },
     {
+      title: "Movimentações",
+      url: "/estoque/movimentacoes",
+      icon: IconTool,
+    },
+    {
       title: "Gestão de Clientes",
       url: "/clientes",
       icon: IconUsers,
@@ -62,7 +67,7 @@ const data = {
       title: "Serviços",
       url: "/servicos",
       icon: IconTool,
-    }
+    },
   ],
   navSecondary: [
     {

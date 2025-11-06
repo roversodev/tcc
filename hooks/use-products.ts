@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAppContext } from '@/lib/contexts/app-context'
-import { Product, ProductCategory, ProductInsert, ProductUpdate } from '@/lib/database.types'
+import { Product, ProductCategory, ProductInsert, ProductUpdate, ProductMovement } from '@/lib/database.types'
 
 export function useProducts() {
   const { currentCompany, user } = useAppContext()
@@ -11,6 +11,8 @@ export function useProducts() {
   const [categories, setCategories] = useState<ProductCategory[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [movements, setMovements] = useState<ProductMovement[]>([])
+  const [movementsLoading, setMovementsLoading] = useState(false)
 
   // Buscar produtos
   const fetchProducts = async () => {
@@ -58,6 +60,34 @@ export function useProducts() {
     } catch (err) {
       console.error('Erro ao buscar categorias:', err)
       setError(err instanceof Error ? err.message : 'Erro desconhecido')
+    }
+  }
+
+  // Buscar movimentações (com join do produto)
+  const fetchMovements = async () => {
+    if (!currentCompany?.id) return
+    try {
+      setMovementsLoading(true)
+      const { data, error } = await supabase
+        .from('product_movements')
+        .select(`
+          *,
+          products:product_id (
+            id,
+            nome,
+            unidade
+          )
+        `)
+        .eq('company_id', currentCompany.id)
+        .order('created_at', { ascending: false })
+
+      if (error) throw error
+      setMovements(data || [])
+    } catch (err) {
+      console.error('Erro ao buscar movimentações:', err)
+      setError(err instanceof Error ? err.message : 'Erro desconhecido')
+    } finally {
+      setMovementsLoading(false)
     }
   }
 
@@ -271,6 +301,7 @@ export function useProducts() {
     if (currentCompany?.id) {
       fetchProducts()
       fetchCategories()
+      fetchMovements()
     }
   }, [currentCompany?.id])
 
@@ -290,5 +321,8 @@ export function useProducts() {
     updateStock,
     // NOVO
     createMovement,
+    movements,
+    movementsLoading,
+    fetchMovements,
   }
 }
