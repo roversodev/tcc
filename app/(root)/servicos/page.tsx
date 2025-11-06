@@ -119,9 +119,10 @@ export default function ServicosPage() {
 
   if (loading) {
     return (
-      <div className="container mx-auto p-6 space-y-6">
-        <div className="flex items-center justify-center h-64">
-          <IconLoader2 className="h-8 w-8 animate-spin" />
+      <div className="flex-1 flex items-center justify-center">
+        <div className="flex items-center gap-2">
+          <IconLoader2 className="h-6 w-6 animate-spin" />
+          <span>Carregando serviços...</span>
         </div>
       </div>
     )
