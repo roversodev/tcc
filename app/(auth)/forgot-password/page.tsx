@@ -13,6 +13,7 @@ import { toast } from "sonner"
 import { useAuth } from "@/hooks/use-auth"
 import { z } from "zod"
 import Link from "next/link"
+import Image from "next/image"
 
 const forgotPasswordSchema = z.object({
   email: z.string().email("Email inválido")
@@ -58,8 +59,8 @@ export default function ForgotPasswordPage() {
 
   if (success) {
     return (
-      <div className="container flex h-screen w-screen flex-col items-center justify-center">
-        <Card className="mx-auto max-w-sm">
+      <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
+        <Card className="w-full max-w-2xl">
           <CardHeader>
             <CardTitle className="text-2xl">Email enviado!</CardTitle>
             <CardDescription>
@@ -88,8 +89,8 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="container flex h-screen w-screen flex-col items-center justify-center">
-      <Card className="mx-auto max-w-sm">
+    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
+      <Card className="w-full max-w-xl">
         <CardHeader>
           <CardTitle className="text-2xl">Esqueceu sua senha?</CardTitle>
           <CardDescription>

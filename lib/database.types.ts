@@ -405,6 +405,38 @@ export interface Database {
           created_at?: string
         }
       }
+      service_materials: {
+        Row: {
+          id: string
+          company_id: string
+          service_id: string
+          product_id: string
+          quantidade: number
+          unit_cost: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          company_id: string
+          service_id: string
+          product_id: string
+          quantidade: number
+          unit_cost?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          company_id?: string
+          service_id?: string
+          product_id?: string
+          quantidade?: number
+          unit_cost?: number
+          created_at?: string
+          updated_at?: string
+        }
+      }
     }
     Views: {
       dashboard_stats: {
@@ -462,3 +494,4 @@ export type ProductUpdate = Database['public']['Tables']['products']['Update']
 export type ServiceUpdate = Database['public']['Tables']['services']['Update']
 export type EventUpdate = Database['public']['Tables']['events']['Update']
 export type FinancialMovementUpdate = Database['public']['Tables']['financial_movements']['Update']
+export type ServiceMaterial = Database['public']['Tables']['service_materials']['Row']

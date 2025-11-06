@@ -68,8 +68,8 @@ export async function middleware(request: NextRequest) {
 
     // Se está autenticado
     if (user) {
-      // Se tenta acessar rota de auth (exceto onboarding), redirecionar para dashboard
-      if (isAuthRoute) {
+      // Se tenta acessar rota de auth (exceto onboarding e reset-password), redirecionar para dashboard
+      if (isAuthRoute && !pathname.startsWith('/reset-password')) {
         const redirectUrl = request.nextUrl.clone()
         redirectUrl.pathname = '/dashboard'
         return NextResponse.redirect(redirectUrl)

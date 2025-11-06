@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -22,9 +22,10 @@ import {
   IconActivity
 } from "@tabler/icons-react"
 import { useServices } from "@/hooks/use-services"
-import { Service } from "@/lib/database.types"
+import { Product, Service } from "@/lib/database.types"
 import { toast } from "sonner"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
+import { useProducts } from "@/hooks/use-products"
 
 export default function ServicosPage() {
   const { 
@@ -35,7 +36,9 @@ export default function ServicosPage() {
     createService,
     updateService,
     deleteService,
-    permanentDeleteService
+    permanentDeleteService,
+    // ADICIONAR: função para persistir materiais
+    setServiceMaterials,
   } = useServices()
 
   const [busca, setBusca] = useState("")
@@ -166,17 +169,31 @@ export default function ServicosPage() {
               servico={servicoSelecionado}
               onSalvar={async (dados) => {
                 try {
+                  // separe o payload do serviço dos materiais
+                  const materiais = dados.materials || []
+                  const dadosServico = {
+                    header: dados.header,
+                    type: dados.type,
+                    status: dados.status,
+                    target: dados.target,
+                    description: dados.description,
+                    duration_minutes: dados.duration_minutes,
+                  }
+
                   if (modoEdicao && servicoSelecionado) {
-                    await updateService(servicoSelecionado.id, dados)
-                    toast.success("Serviço atualizado com sucesso!")
+                    await updateService(servicoSelecionado.id, dadosServico)
+                    await setServiceMaterials(servicoSelecionado.id, materiais)
+                    toast.success("Serviço atualizado com materiais!")
                   } else {
-                    await createService(dados)
-                    toast.success("Serviço criado com sucesso!")
+                    const created = await createService(dadosServico)
+                    await setServiceMaterials(created.id, materiais)
+                    toast.success("Serviço criado com materiais!")
                   }
                   fecharDialog()
                 } catch (error) {
-                  toast.error("Erro ao salvar serviço")
-                  console.error(error)
+                  const msg = (error as any)?.message || "Erro ao salvar serviço e materiais"
+                  toast.error(msg)
+                  console.error("Erro ao salvar serviço e materiais:", error)
                 }
               }}
               onCancelar={fecharDialog}
@@ -408,6 +425,51 @@ function FormularioServico({
   })
 
   const [salvando, setSalvando] = useState(false)
+  const { products, loading: loadingProdutos } = useProducts()
+
+  type MaterialSelecionado = { product: Product; quantidade: number }
+  const [materiais, setMateriais] = useState<MaterialSelecionado[]>([])
+  const [produtoSelecionado, setProdutoSelecionado] = useState<string>("")
+  const [quantidadeSelecionada, setQuantidadeSelecionada] = useState<string>("1")
+
+  const addProduto = () => {
+    if (!produtoSelecionado) return
+    const prod = products.find(p => p.id === produtoSelecionado)
+    if (!prod) return
+    const qtd = Math.max(0, parseFloat(quantidadeSelecionada || "0")) || 0
+
+    setMateriais(prev => {
+      const idx = prev.findIndex(m => m.product.id === prod.id)
+      if (idx >= 0) {
+        const next = [...prev]
+        next[idx] = { ...next[idx], quantidade: next[idx].quantidade + qtd }
+        return next
+      }
+      return [...prev, { product: prod, quantidade: qtd }]
+    })
+    setProdutoSelecionado("")
+    setQuantidadeSelecionada("1")
+  }
+
+  const removeProduto = (id: string) => {
+    setMateriais(prev => prev.filter(m => m.product.id !== id))
+  }
+
+  const updateQuantidadeProduto = (id: string, quantidadeStr: string) => {
+    const qtd = Math.max(0, parseFloat(quantidadeStr || "0")) || 0
+    setMateriais(prev => prev.map(m => 
+      m.product.id === id ? { ...m, quantidade: qtd } : m
+    ))
+  }
+
+  const custoTotal = materiais.reduce((total, m) => {
+    const unitCost = m.product.cost_price ?? 0
+    return total + unitCost * m.quantidade
+  }, 0)
+
+  const precoServico = parseFloat(formData.target || "0") || 0
+  const lucroEstimado = Math.max(0, precoServico - custoTotal)
+  const margemEstimadaPct = precoServico > 0 ? (lucroEstimado / precoServico) * 100 : 0
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -426,11 +488,39 @@ function FormularioServico({
         target: formData.target ? parseFloat(formData.target) : null,
         description: formData.description.trim() || null,
         duration_minutes: parseInt(formData.duration_minutes) || 60,
+        // PERSISTIR MATERIAIS
+        materials: materiais.map(m => ({
+            product_id: m.product.id,
+            quantidade: m.quantidade,
+            unit_cost: m.product.cost_price ?? 0,
+        })),
       })
     } finally {
       setSalvando(false)
     }
   }
+
+  const { fetchServiceMaterials } = useServices()
+
+  useEffect(() => {
+    const preload = async () => {
+      if (!servico?.id || products.length === 0) return
+      try {
+        const rows = await fetchServiceMaterials(servico.id)
+        const preenchidos = rows
+          .map((row: any) => {
+            const prod = products.find(p => p.id === row.product_id)
+            if (!prod) return null
+            return { product: prod, quantidade: row.quantidade }
+          })
+          .filter(Boolean) as MaterialSelecionado[]
+        setMateriais(preenchidos)
+      } catch (err) {
+        console.error("Erro ao carregar materiais do serviço:", err)
+      }
+    }
+    preload()
+  }, [servico?.id, products])
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -507,6 +597,116 @@ function FormularioServico({
             rows={3}
           />
         </div>
+      </div>
+
+      {/* Produtos utilizados */}
+      <div className="space-y-3">
+        <Label>Produtos utilizados</Label>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Select
+            value={produtoSelecionado}
+            onValueChange={setProdutoSelecionado}
+            disabled={loadingProdutos}
+          >
+            <SelectTrigger className="w-full sm:w-[280px]">
+              <SelectValue placeholder={loadingProdutos ? "Carregando produtos..." : "Selecione um produto"} />
+            </SelectTrigger>
+            <SelectContent>
+              {products.length === 0 ? (
+                <SelectItem value="__empty" disabled>Nenhum produto cadastrado</SelectItem>
+              ) : (
+                products.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.nome} • Estoque: {p.quantidade} • Custo: R$ {(p.cost_price ?? 0).toFixed(2)}
+                  </SelectItem>
+                ))
+              )}
+            </SelectContent>
+          </Select>
+
+          <Input
+            type="number"
+            min="0"
+            step="0.01"
+            value={quantidadeSelecionada}
+            onChange={(e) => setQuantidadeSelecionada(e.target.value)}
+            placeholder="Quantidade"
+            className="w-full sm:w-[140px]"
+          />
+
+          <Button
+            type="button"
+            onClick={addProduto}
+            disabled={!produtoSelecionado || parseFloat(quantidadeSelecionada || "0") <= 0}
+            className="w-full sm:w-auto"
+          >
+            <IconPlus className="mr-2 h-4 w-4" />
+            Adicionar
+          </Button>
+        </div>
+
+        {loadingProdutos ? (
+          <div className="flex items-center gap-2 text-primary">
+            <IconLoader2 className="h-4 w-4 animate-spin" />
+            Carregando produtos...
+          </div>
+        ) : (
+          materiais.length > 0 && (
+            <div className="space-y-2">
+              {materiais.map((m) => {
+                const unitCost = m.product.cost_price ?? 0
+                const total = unitCost * m.quantidade
+                const estoqueInsuficiente = (m.product.quantidade ?? 0) < m.quantidade
+                return (
+                  <div key={m.product.id} className="flex items-center justify-between rounded-md border p-2">
+                    <div>
+                      <div className="font-medium">{m.product.nome}</div>
+                      <div className="text-xs text-muted-foreground">
+                        Custo unitário: R$ {unitCost.toFixed(2)} • Total: R$ {total.toFixed(2)} • Estoque: {m.product.quantidade}
+                        {estoqueInsuficiente && (
+                          <span className="text-destructive ml-2">Estoque insuficiente</span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={m.quantidade}
+                        onChange={(e) => updateQuantidadeProduto(m.product.id, e.target.value)}
+                        className="w-24"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={() => removeProduto(m.product.id)}
+                        title="Remover"
+                      >
+                        <IconTrash className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )
+              })}
+
+              <div className="border-t pt-2 text-sm">
+                <div className="flex justify-between">
+                  <span>Custo total</span>
+                  <span>R$ {custoTotal.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Lucro estimado</span>
+                  <span>R$ {lucroEstimado.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Margem estimada</span>
+                  <span>{margemEstimadaPct.toFixed(1)}%</span>
+                </div>
+              </div>
+            </div>
+          )
+        )}
       </div>
 
       <div className="flex justify-end gap-2 pt-4">

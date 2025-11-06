@@ -154,6 +154,57 @@ export function useServices() {
     }
   }, [currentCompany?.id])
 
+  // Persistir materiais de um serviço
+  const setServiceMaterials = async (
+    serviceId: string, 
+    materials: Array<{ product_id: string; quantidade: number; unit_cost: number }>
+  ) => {
+    if (!currentCompany?.id) throw new Error('Empresa não encontrada')
+
+    // Remove materiais anteriores e insere os novos
+    const { error: delError } = await supabase
+      .from('service_materials')
+      .delete()
+      .eq('company_id', currentCompany.id)
+      .eq('service_id', serviceId)
+    if (delError) throw delError
+
+    if (materials.length === 0) return
+
+    const payload = materials.map(m => ({
+      company_id: currentCompany.id,
+      service_id: serviceId,
+      product_id: m.product_id,
+      quantidade: m.quantidade,
+      unit_cost: m.unit_cost ?? 0,
+    }))
+
+    const { error: insError } = await supabase
+      .from('service_materials')
+      .insert(payload)
+    if (insError) throw insError
+  }
+
+  const fetchServiceMaterials = async (serviceId: string) => {
+    if (!currentCompany?.id) return []
+    const { data, error } = await supabase
+      .from('service_materials')
+      .select(`
+        *,
+        products:product_id (
+          id,
+          nome,
+          unidade,
+          quantidade,
+          cost_price
+        )
+      `)
+      .eq('company_id', currentCompany.id)
+      .eq('service_id', serviceId)
+    if (error) throw error
+    return data || []
+  }
+
   return {
     services,
     loading,
@@ -164,5 +215,7 @@ export function useServices() {
     updateService,
     deleteService,
     permanentDeleteService,
+    setServiceMaterials,
+    fetchServiceMaterials,
   }
 }
