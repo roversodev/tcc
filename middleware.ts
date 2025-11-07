@@ -126,6 +126,38 @@ export async function middleware(request: NextRequest) {
         }
       }
 
+      // ADICIONADO: bloquear dashboard para membros
+      if (pathname.startsWith('/dashboard')) {
+        try {
+          const { data: { user } } = await supabase.auth.getUser()
+          if (user) {
+            // obter empresa atual do perfil
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('current_company_id')
+              .eq('id', user.id)
+              .maybeSingle()
+
+            const currentCompanyId = profile?.current_company_id
+            if (currentCompanyId) {
+              const { data: membership } = await supabase
+                .from('company_members')
+                .select('role')
+                .eq('company_id', currentCompanyId)
+                .eq('user_id', user.id)
+                .maybeSingle()
+
+              if (membership?.role === 'member') {
+                const redirectUrl = request.nextUrl.clone()
+                redirectUrl.pathname = '/agenda'
+                return NextResponse.redirect(redirectUrl)
+              }
+            }
+          }
+        } catch (err) {
+          console.error('Error checking dashboard access:', err)
+        }
+      }
       // Se está na página de onboarding mas já completou o onboarding e tem empresa
       if (pathname.startsWith('/onboarding')) {
         try {

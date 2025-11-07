@@ -20,13 +20,8 @@ export default function AgendaPage() {
     calculateEndDate 
   } = useEvents()
 
-  console.log("Debug - Clientes:", clients)
-  console.log("Debug - Serviços:", services)
-  console.log("Debug - Eventos:", calendarEvents)
-
   const handleEventAdd = async (event: CalendarEvent & { clientId?: string; serviceId?: string }) => {
     try {
-      console.log("Criando evento:", event)
       
       if (!event.clientId || !event.serviceId) {
         toast.error("Cliente e serviço são obrigatórios")

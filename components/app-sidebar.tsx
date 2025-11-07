@@ -2,17 +2,16 @@
 
 import * as React from "react"
 import {
-  IconCreditCard,
   IconDashboard,
   IconHelp,
-  IconInnerShadowTop,
   IconSearch,
   IconSettings,
-  IconTicket,
   IconUsers,
   IconCalendarEvent,
   IconPackage,
   IconTool,
+  IconClock,
+  IconArrowsLeftRight,
 } from "@tabler/icons-react"
 
 import { NavMain } from "@/components/nav-main"
@@ -49,6 +48,11 @@ const data = {
       icon: IconCalendarEvent,
     },
     {
+      title: "Serviços em Andamento",
+      url: "/agenda/hoje",
+      icon: IconClock,
+    },
+    {
       title: "Controle de Estoque",
       url: "/estoque",
       icon: IconPackage,
@@ -56,7 +60,7 @@ const data = {
     {
       title: "Movimentações",
       url: "/estoque/movimentacoes",
-      icon: IconTool,
+      icon: IconArrowsLeftRight,
     },
     {
       title: "Gestão de Clientes",

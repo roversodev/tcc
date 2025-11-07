@@ -19,6 +19,7 @@ export interface Database {
           onboarding_completed: boolean
           created_at: string
           updated_at: string
+          email: string | null
         }
         Insert: {
           id: string
@@ -29,6 +30,7 @@ export interface Database {
           onboarding_completed?: boolean
           created_at?: string
           updated_at?: string
+          email?: string | null
         }
         Update: {
           id?: string
@@ -39,6 +41,7 @@ export interface Database {
           onboarding_completed?: boolean
           created_at?: string
           updated_at?: string
+          email?: string | null
         }
       }
       companies: {

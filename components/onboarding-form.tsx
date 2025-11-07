@@ -86,7 +86,8 @@ export function OnboardingForm() {
         .upsert({
           id: user.id,
           full_name: `${profileData.firstName} ${profileData.lastName}`.trim(),
-          phone: profileData.phone
+          phone: profileData.phone,
+          email: user.email ?? null
         })
 
       if (error) {
