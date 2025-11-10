@@ -20,7 +20,7 @@ Para testar o app deve clonar o repositório e seguir os passos abaixo:
 
 1. Instalar as dependências (npm install)
 2. Configurar as variáveis de ambiente como estão no .env.exemple
-3. Configurar o banco de dados (mysql, arquivo para criação no supabase database-setup.sql)
+3. Configurar o banco de dados (mysql, arquivo para criação no supabase database.types.ts)
 4. Executar o app (npm run dev)
 5. Acessar o app em http://localhost:3000
 
@@ -33,4 +33,6 @@ Para testar o app deve clonar o repositório e seguir os passos abaixo:
 /forgot-password - Esqueci a Senha
 / - Dashboard
 /agenda - Agenda Dinâmica
+/agenda/hoje - Controle dos eventos do dia
 /clientes - Gestão de Clientes
+/configuracoes - Configurações da Empresa
