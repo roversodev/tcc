@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table"
@@ -36,10 +36,14 @@ export default function MovimentacoesEstoquePage() {
     const [dialogMovimento, setDialogMovimento] = useState(false)
     const [produtoSelecionado, setProdutoSelecionado] = useState<Product | null>(null)
 
+    // Evitar duplo carregamento em Strict Mode e mudanças de referência
+    const didInit = useRef(false)
+
     useEffect(() => {
-        if (allowed) {
-            fetchMovements()
-        }
+        if (!allowed) return
+        if (didInit.current) return
+        didInit.current = true
+        fetchMovements()
     }, [allowed, fetchMovements])
 
     const abrirDialogMovimento = (produto?: Product) => {
