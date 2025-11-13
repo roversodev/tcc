@@ -44,23 +44,38 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Apenas owner/admin podem convidar" }, { status: 403 })
     }
 
-    // Dispara convite por email
-    const { data: invited, error: inviteErr } = await supabaseAdmin.auth.admin.inviteUserByEmail(email)
-    if (inviteErr) {
-      return NextResponse.json({ error: inviteErr.message }, { status: 400 })
+    // Novo fluxo: inserir diretamente se o usuário já existe
+    const { data: targetProfile, error: findErr } = await supabase
+      .from("profiles")
+      .select("id, email")
+      .eq("email", email)
+      .maybeSingle()
+
+    if (findErr) {
+      return NextResponse.json({ error: findErr.message }, { status: 400 })
+    }
+    if (!targetProfile?.id) {
+      return NextResponse.json({ error: "Usuário não encontrado pelo email. Peça para se cadastrar." }, { status: 404 })
     }
 
-    const invitedUserId = invited.user?.id
-    if (!invitedUserId) {
-      return NextResponse.json({ error: "Convite enviado, mas não foi possível obter o ID do usuário" }, { status: 500 })
+    // Evitar duplicidade de vínculo
+    const { data: existing } = await supabaseAdmin
+      .from("company_members")
+      .select("id")
+      .eq("company_id", companyId)
+      .eq("user_id", targetProfile.id)
+      .maybeSingle()
+
+    if (existing?.id) {
+      return NextResponse.json({ error: "Usuário já é membro desta empresa" }, { status: 409 })
     }
 
-    // Cria vínculo de membro na empresa (usando admin para não sofrer RLS)
+    // Inserir vínculo de membro na empresa (service role ignora RLS)
     const { error: memberErr } = await supabaseAdmin
       .from("company_members")
       .insert({
         company_id: companyId,
-        user_id: invitedUserId,
+        user_id: targetProfile.id,
         role,
         invited_by: user.id,
         permissions: { can_view_dashboard: role !== "member" },

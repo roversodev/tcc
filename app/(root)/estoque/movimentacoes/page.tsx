@@ -29,32 +29,18 @@ export default function MovimentacoesEstoquePage() {
         createMovement,
     } = useProducts()
 
-     const { plan, loading: planLoading } = usePlan()
+    const { plan } = usePlan()
+    const allowed = canAccess(plan, 'movimentacoes')
 
-      if (!canAccess(plan, 'movimentacoes')) {
-      return (
-        <div className="flex-1 p-6">
-          <Card className="max-w-xl mx-auto">
-            <CardHeader>
-              <CardTitle>Funcionalidade disponível no plano Plus</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground mb-4">
-                As movimentações de estoque estão disponíveis a partir do plano Plus.
-              </p>
-              <UpgradeSheet />
-            </CardContent>
-          </Card>
-        </div>
-      )
-    }
-
+    // Hooks devem ser sempre chamados no topo (sem retorno condicional antes)
     const [dialogMovimento, setDialogMovimento] = useState(false)
     const [produtoSelecionado, setProdutoSelecionado] = useState<Product | null>(null)
 
     useEffect(() => {
-        fetchMovements()
-    }, [])
+        if (allowed) {
+            fetchMovements()
+        }
+    }, [allowed, fetchMovements])
 
     const abrirDialogMovimento = (produto?: Product) => {
         setProdutoSelecionado(produto || null)
@@ -62,6 +48,7 @@ export default function MovimentacoesEstoquePage() {
     }
 
     const dadosGrafico = useMemo(() => {
+        if (!allowed) return []
         const map = new Map<string, { entrada: number; saida: number }>()
         movements.forEach(m => {
             const d = new Date(m.created_at)
@@ -74,128 +61,147 @@ export default function MovimentacoesEstoquePage() {
         return Array.from(map.entries())
             .sort((a, b) => a[0].localeCompare(b[0]))
             .map(([date, v]) => ({ date, ...v }))
-    }, [movements])
+    }, [movements, allowed])
 
     return (
         <div className="flex-1 space-y-6 p-6">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Movimentações de Estoque</h1>
-                    <p className="text-muted-foreground">
-                        Histórico de entradas e saídas com gráfico por dia
-                    </p>
+            {!allowed ? (
+                <div className="flex-1 p-6">
+                    <Card className="max-w-xl mx-auto">
+                        <CardHeader>
+                            <CardTitle>Funcionalidade disponível no plano Plus</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <p className="text-muted-foreground mb-4">
+                                As movimentações de estoque estão disponíveis a partir do plano Plus.
+                            </p>
+                            <UpgradeSheet />
+                        </CardContent>
+                    </Card>
                 </div>
-                <Button onClick={() => abrirDialogMovimento()}>
-                    <IconPlus className="mr-2 h-4 w-4" />
-                    Nova Movimentação
-                </Button>
-            </div>
-
-            <Card>
-                <CardHeader>
-                    <CardTitle>Tabela de Movimentações</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    {movementsLoading ? (
-                        <div className="flex items-center gap-2 py-6">
-                            <IconLoader2 className="h-5 w-5 animate-spin" />
-                            <span>Carregando movimentações...</span>
+            ) : (
+                <>
+                    {/* Conteúdo original quando permitido */}
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h1 className="text-3xl font-bold tracking-tight">Movimentações de Estoque</h1>
+                            <p className="text-muted-foreground">
+                                Histórico de entradas e saídas com gráfico por dia
+                            </p>
                         </div>
-                    ) : (
-                        <div className="rounded-lg border">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Data</TableHead>
-                                        <TableHead>Produto</TableHead>
-                                        <TableHead>Tipo</TableHead>
-                                        <TableHead>Quantidade</TableHead>
-                                        <TableHead>Preço de Custo</TableHead>
-                                        <TableHead>Total</TableHead>
-                                        <TableHead>Observação</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {movements.map((m) => {
-                                        const produtoNome = (m as any).products?.nome ?? '—'
-                                        const unidade = (m as any).products?.unidade ?? ''
-                                        const total = (m.unit_cost ?? 0) * m.quantidade
-                                        return (
-                                            <TableRow key={m.id}>
-                                                <TableCell>{format(new Date(m.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}</TableCell>
-                                                <TableCell>{produtoNome}</TableCell>
-                                                <TableCell className={m.type === 'entrada' ? 'text-green-600' : 'text-red-600'}>
-                                                    {m.type === 'entrada' ? 'Entrada' : 'Saída'}
-                                                </TableCell>
-                                                <TableCell>{m.quantidade} {unidade}</TableCell>
-                                                <TableCell>R$ {(m.unit_cost ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</TableCell>
-                                                <TableCell>R$ {total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</TableCell>
-                                                <TableCell className="max-w-[280px] truncate">{m.note ?? '—'}</TableCell>
+                        <Button onClick={() => abrirDialogMovimento()}>
+                            <IconPlus className="mr-2 h-4 w-4" />
+                            Nova Movimentação
+                        </Button>
+                    </div>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Tabela de Movimentações</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            {movementsLoading ? (
+                                <div className="flex items-center gap-2 py-6">
+                                    <IconLoader2 className="h-5 w-5 animate-spin" />
+                                    <span>Carregando movimentações...</span>
+                                </div>
+                            ) : (
+                                <div className="rounded-lg border">
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead>Data</TableHead>
+                                                <TableHead>Produto</TableHead>
+                                                <TableHead>Tipo</TableHead>
+                                                <TableHead>Quantidade</TableHead>
+                                                <TableHead>Preço de Custo</TableHead>
+                                                <TableHead>Total</TableHead>
+                                                <TableHead>Observação</TableHead>
                                             </TableRow>
-                                        )
-                                    })}
-                                </TableBody>
-                            </Table>
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {movements.map((m) => {
+                                                const produtoNome = (m as any).products?.nome ?? '—'
+                                                const unidade = (m as any).products?.unidade ?? ''
+                                                const total = (m.unit_cost ?? 0) * m.quantidade
+                                                return (
+                                                    <TableRow key={m.id}>
+                                                        <TableCell>{format(new Date(m.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}</TableCell>
+                                                        <TableCell>{produtoNome}</TableCell>
+                                                        <TableCell className={m.type === 'entrada' ? 'text-green-600' : 'text-red-600'}>
+                                                            {m.type === 'entrada' ? 'Entrada' : 'Saída'}
+                                                        </TableCell>
+                                                        <TableCell>{m.quantidade} {unidade}</TableCell>
+                                                        <TableCell>R$ {(m.unit_cost ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</TableCell>
+                                                        <TableCell>R$ {total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</TableCell>
+                                                        <TableCell className="max-w-[280px] truncate">{m.note ?? '—'}</TableCell>
+                                                    </TableRow>
+                                                )
+                                            })}
+                                        </TableBody>
+                                    </Table>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Entradas x Saídas por dia</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <ChartContainer
-                        id="movimentos-dia"
-                        config={{
-                            entrada: { label: "Entradas" },
-                            saida: { label: "Saídas" },
-                        }}
-                    >
-                        <div className="h-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={dadosGrafico}>
-                                    <XAxis dataKey="date" />
-                                    <YAxis />
-                                    <ChartTooltip content={<ChartTooltipContent />} />
-                                    <ChartLegend content={<ChartLegendContent />} />
-                                    <Bar dataKey="entrada" fill="#22c55e" />
-                                    <Bar dataKey="saida" fill="#ef4444" />
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </div>
-                    </ChartContainer>
-                </CardContent>
-            </Card>
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Entradas x Saídas por dia</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <ChartContainer
+                                id="movimentos-dia"
+                                config={{
+                                    entrada: { label: "Entradas" },
+                                    saida: { label: "Saídas" },
+                                }}
+                            >
+                                <div className="h-full">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <BarChart data={dadosGrafico}>
+                                            <XAxis dataKey="date" />
+                                            <YAxis />
+                                            <ChartTooltip content={<ChartTooltipContent />} />
+                                            <ChartLegend content={<ChartLegendContent />} />
+                                            <Bar dataKey="entrada" fill="#22c55e" />
+                                            <Bar dataKey="saida" fill="#ef4444" />
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            </ChartContainer>
+                        </CardContent>
+                    </Card>
 
-            {/* Dialog de movimentação */}
-            <Dialog open={dialogMovimento} onOpenChange={setDialogMovimento}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Nova Movimentação</DialogTitle>
-                        <DialogDescription>
-                            Registre uma entrada (compra) ou saída (vencimento, perda, uso).
-                        </DialogDescription>
-                    </DialogHeader>
-                    <DialogMovimento
-                        produto={produtoSelecionado}
-                        products={products}
-                        onClose={() => setDialogMovimento(false)}
-                        onSave={async (args) => {
-                            try {
-                                await createMovement(args)
-                                await fetchMovements()
-                                toast.success("Movimentação registrada com sucesso!")
-                                setDialogMovimento(false)
-                            } catch (error) {
-                                toast.error("Erro ao registrar movimentação")
-                                console.error(error)
-                            }
-                        }}
-                    />
-                </DialogContent>
-            </Dialog>
+                    {/* Dialog de movimentação */}
+                    <Dialog open={dialogMovimento} onOpenChange={setDialogMovimento}>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Nova Movimentação</DialogTitle>
+                                <DialogDescription>
+                                    Registre uma entrada (compra) ou saída (vencimento, perda, uso).
+                                </DialogDescription>
+                            </DialogHeader>
+                            <DialogMovimento
+                                produto={produtoSelecionado}
+                                products={products}
+                                onClose={() => setDialogMovimento(false)}
+                                onSave={async (args) => {
+                                    try {
+                                        await createMovement(args)
+                                        await fetchMovements()
+                                        toast.success("Movimentação registrada com sucesso!")
+                                        setDialogMovimento(false)
+                                    } catch (error) {
+                                        toast.error("Erro ao registrar movimentação")
+                                        console.error(error)
+                                    }
+                                }}
+                            />
+                        </DialogContent>
+                    </Dialog>
+                </>
+            )}
         </div>
     )
 }

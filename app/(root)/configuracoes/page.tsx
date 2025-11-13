@@ -83,7 +83,7 @@ export default function ConfiguracoesPage() {
                         id: m.id,
                         user_id: m.user_id,
                         role: m.role,
-                        user_profile: m.user_profile?.[0] || { full_name: null, email: null },
+                        profile: m.user_profile?.[0] || { full_name: null, email: null },
                     }))
                 )
 
@@ -158,7 +158,7 @@ export default function ConfiguracoesPage() {
                     id: m.id,
                     user_id: m.user_id,
                     role: m.role,
-                    user_profile: m.user_profile?.[0] || { full_name: null, email: null },
+                    profile: m.user_profile?.[0] || { full_name: null, email: null },
                 }))
             )
             setInviteEmail("")
@@ -248,7 +248,8 @@ export default function ConfiguracoesPage() {
                                         disabled={!canInvite}
                                     />
                                     <div className="mt-1 text-xs text-muted-foreground">
-                                        Enviaremos um email de convite. O usuário será vinculado à empresa ao aceitar.
+                                        Se o usuário já tiver cadastro, será adicionado à empresa pelo email.
+                                        Caso não exista, peça para que se registre primeiro.
                                     </div>
                                 </div>
                                 <div>
@@ -263,11 +264,11 @@ export default function ConfiguracoesPage() {
                                 </div>
                                 <div className="mt-3">
                                     <Button onClick={handleInviteMember} disabled={!canInvite || inviting}>
-                                        {inviting ? "Convidando..." : "Enviar convite"}
+                                        {inviting ? "Adicionando..." : "Adicionar à empresa"}
                                     </Button>
                                     {!canInvite && (
                                         <span className="ml-3 text-xs text-muted-foreground">
-                                            Apenas owner/admin podem convidar membros.
+                                            Apenas owner/admin podem adicionar membros.
                                         </span>
                                     )}
                                 </div>
