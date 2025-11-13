@@ -16,6 +16,9 @@ import { ptBR } from "date-fns/locale"
 import { useProducts } from "@/hooks/use-products"
 import { Product } from "@/lib/database.types"
 import { toast } from "sonner"
+import { usePlan } from "@/hooks/use-plan"
+import { UpgradeSheet } from "@/components/upgrade-sheet"
+import { canAccess } from "@/lib/plan"
 
 export default function MovimentacoesEstoquePage() {
     const {
@@ -25,6 +28,26 @@ export default function MovimentacoesEstoquePage() {
         fetchMovements,
         createMovement,
     } = useProducts()
+
+     const { plan, loading: planLoading } = usePlan()
+
+      if (!canAccess(plan, 'movimentacoes')) {
+      return (
+        <div className="flex-1 p-6">
+          <Card className="max-w-xl mx-auto">
+            <CardHeader>
+              <CardTitle>Funcionalidade disponível no plano Plus</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground mb-4">
+                As movimentações de estoque estão disponíveis a partir do plano Plus.
+              </p>
+              <UpgradeSheet />
+            </CardContent>
+          </Card>
+        </div>
+      )
+    }
 
     const [dialogMovimento, setDialogMovimento] = useState(false)
     const [produtoSelecionado, setProdutoSelecionado] = useState<Product | null>(null)

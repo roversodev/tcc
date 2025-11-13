@@ -7,6 +7,9 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { usePlan } from "@/hooks/use-plan"
+import { UpgradeSheet } from "@/components/upgrade-sheet"
+import { canAccess } from "@/lib/plan"
 
 type Member = {
     id: string
@@ -32,6 +35,7 @@ export default function ConfiguracoesPage() {
         country: "",
         website: "",
     })
+    const { plan } = usePlan()
 
     // Controle de convites
     const [inviteRole, setInviteRole] = useState<"admin" | "member">("member")
@@ -226,37 +230,48 @@ export default function ConfiguracoesPage() {
                 <div className="mt-4">
                     <div className="mb-2 text-sm font-medium">Convidar novo membro</div>
                     <div className="grid grid-cols-1 items-end gap-2 sm:grid-cols-3">
-                        <div className="sm:col-span-2">
-                            <Label>Email</Label>
-                            <Input
-                                placeholder="usuario@exemplo.com"
-                                value={inviteEmail}
-                                onChange={(e) => setInviteEmail(e.target.value)}
-                                disabled={!canInvite}
-                            />
-                            <div className="mt-1 text-xs text-muted-foreground">
-                                Enviaremos um email de convite. O usuário será vinculado à empresa ao aceitar.
+                        {!canAccess(plan, 'invites') ? (
+                            <div>
+                                <p className="text-muted-foreground mb-4">
+                                    Convites de usuários estão disponíveis apenas no plano Pro.
+                                </p>
+                                <UpgradeSheet />
                             </div>
-                        </div>
-                        <div>
-                            <Label>Papel</Label>
-                            <Select value={inviteRole} onValueChange={(v: any) => setInviteRole(v)} disabled={!canInvite}>
-                                <SelectTrigger><SelectValue placeholder="Selecione o papel" /></SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="member">Membro</SelectItem>
-                                    <SelectItem value="admin">Admin</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    </div>
-                    <div className="mt-3">
-                        <Button onClick={handleInviteMember} disabled={!canInvite || inviting}>
-                            {inviting ? "Convidando..." : "Enviar convite"}
-                        </Button>
-                        {!canInvite && (
-                            <span className="ml-3 text-xs text-muted-foreground">
-                                Apenas owner/admin podem convidar membros.
-                            </span>
+                        ) : (
+                            <>
+                                <div className="sm:col-span-2">
+                                    <Label>Email</Label>
+                                    <Input
+                                        placeholder="usuario@exemplo.com"
+                                        value={inviteEmail}
+                                        onChange={(e) => setInviteEmail(e.target.value)}
+                                        disabled={!canInvite}
+                                    />
+                                    <div className="mt-1 text-xs text-muted-foreground">
+                                        Enviaremos um email de convite. O usuário será vinculado à empresa ao aceitar.
+                                    </div>
+                                </div>
+                                <div>
+                                    <Label>Papel</Label>
+                                    <Select value={inviteRole} onValueChange={(v: any) => setInviteRole(v)} disabled={!canInvite}>
+                                        <SelectTrigger><SelectValue placeholder="Selecione o papel" /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="member">Membro</SelectItem>
+                                            <SelectItem value="admin">Admin</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="mt-3">
+                                    <Button onClick={handleInviteMember} disabled={!canInvite || inviting}>
+                                        {inviting ? "Convidando..." : "Enviar convite"}
+                                    </Button>
+                                    {!canInvite && (
+                                        <span className="ml-3 text-xs text-muted-foreground">
+                                            Apenas owner/admin podem convidar membros.
+                                        </span>
+                                    )}
+                                </div>
+                            </>
                         )}
                     </div>
                 </div>

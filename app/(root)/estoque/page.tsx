@@ -29,6 +29,9 @@ import { ptBR } from "date-fns/locale"
 import { useProducts } from "@/hooks/use-products"
 import { Product, ProductCategory } from "@/lib/database.types"
 import { toast } from "sonner"
+import { usePlan } from "@/hooks/use-plan"
+import { canAccess } from "@/lib/plan"
+import { UpgradeSheet } from "@/components/upgrade-sheet"
 
 export default function EstoquePage() {
   const { 
@@ -123,6 +126,35 @@ export default function EstoquePage() {
   }
 
   const produtosAtivos = products.filter(p => p.status === "Ativo")
+
+  const { plan, loading: planLoading } = usePlan()
+
+  if (planLoading) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <IconLoader2 className="h-6 w-6 animate-spin" />
+        <span className="ml-2">Carregando plano...</span>
+      </div>
+    )
+  }
+
+  if (!canAccess(plan, 'estoque')) {
+    return (
+      <div className="flex-1 p-6">
+        <Card className="max-w-xl mx-auto">
+          <CardHeader>
+            <CardTitle>Funcionalidade disponível no plano Plus</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground mb-4">
+              O controle de estoque está disponível a partir do plano Plus.
+            </p>
+            <UpgradeSheet />
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   if (loading) {
     return (

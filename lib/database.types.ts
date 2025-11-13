@@ -475,6 +475,38 @@ export interface Database {
           updated_at?: string
         }
       }
+      company_plans: {
+        Row: {
+          company_id: string
+          plan: 'free' | 'plus' | 'pro'
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          status: 'active' | 'canceled' | 'incomplete' | 'past_due' | 'trialing' | 'unpaid' | 'incomplete_expired'
+          current_period_end: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          plan?: 'free' | 'plus' | 'pro'
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          status?: 'active' | 'canceled' | 'incomplete' | 'past_due' | 'trialing' | 'unpaid' | 'incomplete_expired'
+          current_period_end?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          plan?: 'free' | 'plus' | 'pro'
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          status?: 'active' | 'canceled' | 'incomplete' | 'past_due' | 'trialing' | 'unpaid' | 'incomplete_expired'
+          current_period_end?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
     }
     Views: {
       dashboard_stats: {
@@ -534,3 +566,6 @@ export type EventUpdate = Database['public']['Tables']['events']['Update']
 export type FinancialMovementUpdate = Database['public']['Tables']['financial_movements']['Update']
 export type ServiceMaterial = Database['public']['Tables']['service_materials']['Row']
 export type ProductMovement = Database['public']['Tables']['product_movements']['Row']
+export type CompanyPlan = Database['public']['Tables']['company_plans']['Row']
+export type CompanyPlanInsert = Database['public']['Tables']['company_plans']['Insert']
+export type CompanyPlanUpdate = Database['public']['Tables']['company_plans']['Update']

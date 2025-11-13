@@ -12,6 +12,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 import Link from "next/link"
+import { UpgradeSheet } from "./upgrade-sheet"
 
 export function NavSecondary({
   items,
@@ -29,6 +30,16 @@ export function NavSecondary({
     <SidebarGroup {...props}>
       <SidebarGroupContent>
         <SidebarMenu>
+          {/* Card de upgrade acima de Configurações */}
+        <div className="px-2 mb-2">
+          <UpgradeSheet
+            trigger={
+              <button className="w-full rounded-md border bg-muted/30 text-sm py-2">
+                Upgrade de Plano
+              </button>
+            }
+          />
+        </div>
           {items.map((item) => {
             const isActive = pathname === item.url
             return (
