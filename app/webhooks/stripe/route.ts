@@ -10,7 +10,6 @@ const PRICE_PRO  = process.env.STRIPE_PRICE_PRO!
 export async function POST(req: NextRequest) {
   const admin = createAdminClient()
   const sig = req.headers.get("stripe-signature") || ""
-
   let event
   const rawBody = await req.text()
 
@@ -44,21 +43,20 @@ export async function POST(req: NextRequest) {
       }
       case "customer.subscription.updated":
       case "customer.subscription.created": {
-        const sub = event.data.object as any
+        const sub = event.data.object as Stripe.Subscription
         const customerId = sub.customer as string
         const priceId = sub.items?.data?.[0]?.price?.id as string | undefined
         const status = sub.status as string
-        const periodEnd = sub.current_period_end ? new Date(sub.current_period_end * 1000).toISOString() : null
-        const plan = priceId === PRICE_PRO ? 'pro' : priceId === PRICE_PLUS ? 'plus' : 'free'
+        const periodEndUnix = (sub as any)?.current_period_end
+        const periodEnd = typeof periodEndUnix === "number" ? new Date(periodEndUnix * 1000).toISOString() : null
+        const plan = priceId === PRICE_PRO ? "pro" : priceId === PRICE_PLUS ? "plus" : "free"
 
-        // encontra company via customer.metadata ou company_plans
-        // fallback: update pelo customer_id
-        await admin.from('company_plans').update({
+        await admin.from("company_plans").update({
           plan,
           status,
           current_period_end: periodEnd,
           stripe_subscription_id: sub.id,
-        }).eq('stripe_customer_id', customerId)
+        }).eq("stripe_customer_id", customerId)
         break
       }
       case "customer.subscription.deleted": {
@@ -79,7 +77,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ received: true })
   } catch (e) {
     console.error("Webhook handling error", e)
-    return NextResponse.json({ error: 'Webhook handling failed' }, { status: 500 })
+    return NextResponse.json({ error: "Webhook handling failed" }, { status: 500 })
   }
 }
 

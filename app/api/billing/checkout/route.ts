@@ -76,6 +76,14 @@ export async function POST(req: NextRequest) {
         plan,
         user_id: user.id,
       },
+      // Adiciona metadados também na Subscription gerada
+      subscription_data: {
+        metadata: {
+          company_id: companyId,
+          plan,
+          user_id: user.id,
+        }
+      }
     })
 
     return NextResponse.json({ url: session.url })

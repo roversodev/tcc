@@ -72,7 +72,7 @@ export default function ConfiguracoesPage() {
                     website: company.website || "",
                 })
 
-                // Carregar membros com nome — CORRIGIDO: desambiguar a relação com profiles
+                // Carregar membros com nome — desambiguar a relação com profiles
                 const { data: membs, error: mErr } = await supabase
                     .from("company_members")
                     .select("id, user_id, role, user_profile:profiles!company_members_user_id_fkey(full_name,email)")
@@ -83,7 +83,7 @@ export default function ConfiguracoesPage() {
                         id: m.id,
                         user_id: m.user_id,
                         role: m.role,
-                        profile: m.user_profile?.[0] || { full_name: null, email: null },
+                        profile: m.user_profile ?? { full_name: null, email: null },
                     }))
                 )
 
@@ -158,7 +158,7 @@ export default function ConfiguracoesPage() {
                     id: m.id,
                     user_id: m.user_id,
                     role: m.role,
-                    profile: m.user_profile?.[0] || { full_name: null, email: null },
+                    profile: m.user_profile ?? { full_name: null, email: null },
                 }))
             )
             setInviteEmail("")
