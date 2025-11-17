@@ -13,12 +13,14 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem 
+import {
+  Select, SelectTrigger, SelectValue, SelectContent, SelectItem
 } from "@/components/ui/select"
 import { useEvents } from "@/hooks/use-events"
 import { useProducts } from "@/hooks/use-products"
 import { useServices } from "@/hooks/use-services"
 import { createClient } from "@/lib/supabase/client"
+import { toast } from "sonner"
 
 type MaterialItem = {
   id: string
@@ -53,12 +55,16 @@ export default function AgendaHojePage() {
   const [valorServico, setValorServico] = useState<number>(0)
   const [saving, setSaving] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
-
-  // ADICIONADO: estados para itens extras e desconto
+  const [cancelOpen, setCancelOpen] = useState(false)
+  const [eventoParaCancelar, setEventoParaCancelar] = useState<any | null>(null)
+  const [canceling, setCanceling] = useState(false)
   const [extraProdId, setExtraProdId] = useState<string>("")
   const [extraQtd, setExtraQtd] = useState<string>("")
   const [extras, setExtras] = useState<{ product_id: string; quantidade: number }[]>([])
   const [desconto, setDesconto] = useState<number>(0)
+  const [startOpen, setStartOpen] = useState(false)
+  const [eventoParaIniciar, setEventoParaIniciar] = useState<any | null>(null)
+  const [starting, setStarting] = useState(false)
 
   // Helper moeda (pt-BR)
   const formatBRL = (n: number) =>
@@ -97,8 +103,31 @@ export default function AgendaHojePage() {
   const handleIniciar = async (ev: any) => {
     try {
       await updateEventStatus(ev.id, "confirmed")
+      toast.success("Atendimento iniciado", {
+        description: `${ev.clients?.nome || "Cliente"} • ${ev.services?.header || "Serviço"}`
+      })
     } catch (e) {
       console.error(e)
+      toast.error("Não foi possível iniciar o atendimento")
+    }
+  }
+
+  // NOVO: abrir modal de iniciar
+  const abrirIniciar = (ev: any) => {
+    setEventoParaIniciar(ev)
+    setStartOpen(true)
+  }
+
+  // NOVO: confirmar início (chama handleIniciar)
+  const confirmarInicio = async () => {
+    if (!eventoParaIniciar) return
+    setStarting(true)
+    try {
+      await handleIniciar(eventoParaIniciar)
+      setStartOpen(false)
+      setEventoParaIniciar(null)
+    } finally {
+      setStarting(false)
     }
   }
 
@@ -121,6 +150,32 @@ export default function AgendaHojePage() {
     } catch (e) {
       console.error("Erro ao carregar materiais:", e)
       setErro("Não foi possível carregar os materiais do serviço.")
+      toast.error("Erro ao carregar materiais do serviço")
+    }
+  }
+
+  // NOVO: abre modal de confirmação de cancelamento
+  const abrirCancelar = (ev: any) => {
+    setEventoParaCancelar(ev)
+    setCancelOpen(true)
+  }
+
+  // NOVO: confirma cancelamento
+  const confirmarCancelamento = async () => {
+    if (!eventoParaCancelar) return
+    setCanceling(true)
+    try {
+      await updateEventStatus(eventoParaCancelar.id, "cancelled")
+      setCancelOpen(false)
+      setEventoParaCancelar(null)
+      toast.success("Atendimento cancelado", {
+        description: `${eventoParaCancelar.clients?.nome || "Cliente"} • ${eventoParaCancelar.services?.header || "Serviço"}`
+      })
+    } catch (e) {
+      console.error(e)
+      toast.error("Não foi possível cancelar o atendimento")
+    } finally {
+      setCanceling(false)
     }
   }
 
@@ -267,9 +322,14 @@ export default function AgendaHojePage() {
       setValorServico(0)
       setExtras([])
       setDesconto(0)
+
+      toast.success("Atendimento concluído", {
+        description: `Faturamento: ${formatBRL(valorLiquidoVisivel)}`
+      })
     } catch (e: any) {
       console.error("Erro ao concluir atendimento:", e)
       setErro(e?.message || "Erro ao concluir atendimento")
+      toast.error("Erro ao concluir atendimento")
     } finally {
       setSaving(false)
     }
@@ -277,13 +337,15 @@ export default function AgendaHojePage() {
 
   return (
     <div className="space-y-6 p-4">
+      {/* Cabeçalho minimalista */}
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Gerenciar Atendimentos de Hoje</h1>
+        <h1 className="text-xl font-semibold">Agenda de Hoje</h1>
         <div className="text-sm text-muted-foreground">
           {format(hoje, "dd 'de' MMMM, yyyy", { locale: ptBR })}
         </div>
       </div>
 
+      {/* Lista de eventos */}
       {loading ? (
         <div className="text-sm text-muted-foreground">Carregando agendamentos...</div>
       ) : eventosHoje.length === 0 ? (
@@ -313,9 +375,9 @@ export default function AgendaHojePage() {
                   <TableCell>
                     <Badge variant={
                       status === "scheduled" ? "secondary" :
-                      status === "confirmed" ? "default" :
-                      status === "completed" ? "success" :
-                      "destructive"
+                        status === "confirmed" ? "default" :
+                          status === "completed" ? "success" :
+                            "destructive"
                     }>
                       {status === "scheduled" && "Agendado"}
                       {status === "confirmed" && "Em andamento"}
@@ -325,17 +387,17 @@ export default function AgendaHojePage() {
                   </TableCell>
                   <TableCell className="text-right space-x-2">
                     {status === "scheduled" && (
-                      <Button size="sm" onClick={() => handleIniciar(ev)}>
+                      <Button size="sm" onClick={() => abrirIniciar(ev)}>
                         Iniciar
                       </Button>
                     )}
-                    {status !== "cancelled" && status !== "completed" && (
+                    {status === "confirmed" && (
                       <Button size="sm" variant="default" onClick={() => abrirFinalizar(ev)}>
                         Concluir (Pago)
                       </Button>
                     )}
                     {status !== "completed" && (
-                      <Button size="sm" variant="destructive" onClick={() => handleCancelar(ev)}>
+                      <Button size="sm" variant="destructive" onClick={() => abrirCancelar(ev)}>
                         Cancelar
                       </Button>
                     )}
@@ -347,6 +409,7 @@ export default function AgendaHojePage() {
         </Table>
       )}
 
+      {/* Modal de conclusão (já existente) */}
       <Dialog open={finalizarOpen} onOpenChange={setFinalizarOpen}>
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
@@ -494,15 +557,15 @@ export default function AgendaHojePage() {
                     lucroBrutoVisivel > 0
                       ? "text-emerald-600 font-medium"
                       : lucroBrutoVisivel === 0
-                      ? "text-muted-foreground font-medium"
-                      : "text-red-600 font-medium"
+                        ? "text-muted-foreground font-medium"
+                        : "text-red-600 font-medium"
                   }
                 >
                   {lucroBrutoVisivel > 0
                     ? "Operação Rentável"
                     : lucroBrutoVisivel === 0
-                    ? "Empate"
-                    : "Prejuízo"}
+                      ? "Empate"
+                      : "Prejuízo"}
                 </div>
                 <div className="text-xs text-muted-foreground">
                   Custo materiais: {formatBRL(custoTotalMateriaisVisivel)}
@@ -537,6 +600,88 @@ export default function AgendaHojePage() {
             </Button>
           </DialogFooter>
 
+        </DialogContent>
+      </Dialog>
+
+
+      {/* NOVO: Modal de confirmação de cancelamento */}
+      <Dialog open={cancelOpen} onOpenChange={setCancelOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Confirmar cancelamento</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 text-sm">
+            <div className="text-muted-foreground">
+              Tem certeza que deseja cancelar este atendimento?
+            </div>
+            {eventoParaCancelar && (
+              <div className="rounded-lg border bg-muted/50 p-3">
+                <div>
+                  <span className="text-muted-foreground">Cliente:</span>{" "}
+                  {eventoParaCancelar.clients?.nome || "—"}
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Serviço:</span>{" "}
+                  {eventoParaCancelar.services?.header || "—"}
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Horário:</span>{" "}
+                  {format(new Date(eventoParaCancelar.start_date), "HH:mm")}
+                </div>
+              </div>
+            )}
+            <div className="text-xs text-muted-foreground">
+              Esta ação é definitiva e marcará o evento como cancelado.
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCancelOpen(false)} disabled={canceling}>
+              Voltar
+            </Button>
+            <Button variant="destructive" onClick={confirmarCancelamento} disabled={canceling}>
+              {canceling ? "Cancelando..." : "Confirmar cancelamento"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+
+
+      {/* NOVO: Modal de confirmação de início */}
+      <Dialog open={startOpen} onOpenChange={setStartOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Confirmar início do atendimento</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 text-sm">
+            <div className="text-muted-foreground">
+              Deseja iniciar este atendimento agora?
+            </div>
+            {eventoParaIniciar && (
+              <div className="rounded-lg border bg-muted/50 p-3">
+                <div>
+                  <span className="text-muted-foreground">Cliente:</span>{" "}
+                  {eventoParaIniciar.clients?.nome || "—"}
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Serviço:</span>{" "}
+                  {eventoParaIniciar.services?.header || "—"}
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Horário:</span>{" "}
+                  {format(new Date(eventoParaIniciar.start_date), "HH:mm")}
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setStartOpen(false)} disabled={starting}>
+              Voltar
+            </Button>
+            <Button onClick={confirmarInicio} disabled={starting}>
+              {starting ? "Iniciando..." : "Confirmar início"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
